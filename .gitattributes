@@ -1,0 +1,6 @@
+# Enforce line endings for cross-platform compatibility
+*.bat text eol=crlf
+*.sh text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.png binary
