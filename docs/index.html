@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pve-cert — Proxmox VE Self-Hosted HTTPS Certificate Solution</title>
+  <meta name="description" content="One command for Proxmox VE server, one command per client. 10-year trusted Root CA & HTTPS lock for Proxmox VE 7/8/9 without internet or public domain.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pve-orange: #E57000;
+      --pve-orange-hover: #FF7D00;
+      --pve-orange-light: rgba(229, 112, 0, 0.15);
+      --pve-dark-bg: #121417;
+      --pve-card-bg: #1B1F24;
+      --pve-card-border: #2B313A;
+      --pve-header-bg: #16191D;
+      --pve-subcard-bg: #22272E;
+      --text-main: #E6EDF3;
+      --text-muted: #8B949E;
+      --text-bright: #FFFFFF;
+      --code-bg: #0D1117;
+      --success: #2EA043;
+      --success-light: rgba(46, 160, 67, 0.15);
+      --warning: #D29922;
+      --danger: #F85149;
+      --border-radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--pve-dark-bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Fixed Navigation */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 64px;
+      background-color: rgba(22, 25, 29, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--pve-card-border);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--pve-orange), #FF9526);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(229, 112, 0, 0.4);
+    }
+    .brand-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: -0.5px;
+    }
+    .brand-tag {
+      background: var(--pve-orange-light);
+      color: var(--pve-orange);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(229, 112, 0, 0.3);
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--pve-orange); }
+
+    .lang-btn {
+      background: var(--pve-subcard-bg);
+      border: 1px solid var(--pve-card-border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .lang-btn:hover {
+      border-color: var(--pve-orange);
+      color: var(--pve-orange);
+    }
+
+    /* Hero Section */
+    .hero {
+      margin-top: 64px;
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      background: radial-gradient(circle at 50% 20%, rgba(229, 112, 0, 0.12) 0%, transparent 60%);
+      border-bottom: 1px solid var(--pve-card-border);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--pve-subcard-bg);
+      border: 1px solid var(--pve-card-border);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -1px;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--pve-orange), #FF9D3B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--pve-orange);
+      color: white;
+      box-shadow: 0 4px 14px rgba(229, 112, 0, 0.4);
+    }
+    .btn-primary:hover {
+      background: var(--pve-orange-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--pve-card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--pve-card-border);
+    }
+    .btn-secondary:hover {
+      background: var(--pve-subcard-bg);
+      border-color: var(--text-muted);
+    }
+
+    /* Node Status Display Bar */
+    .pve-bar {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+    }
+    .pve-node-name { color: var(--pve-orange); font-weight: 600; }
+    .pve-ssl-badge {
+      background: var(--success-light);
+      color: var(--success);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(46, 160, 67, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Content Layout */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: 16px;
+    }
+
+    /* Grid Cards */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+    .card {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      padding: 1.75rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      border-color: var(--pve-orange);
+      transform: translateY(-2px);
+    }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--pve-orange-light);
+      color: var(--pve-orange);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 1.25rem;
+    }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 0.5rem;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Screenshots Comparison Section */
+    .screenshot-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+    .ss-box {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+    .ss-box:hover .ss-img { transform: scale(1.02); }
+    .ss-header {
+      padding: 12px 16px;
+      background: var(--pve-header-bg);
+      border-bottom: 1px solid var(--pve-card-border);
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ss-header.before { color: var(--danger); }
+    .ss-header.after { color: var(--success); }
+    .ss-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s;
+    }
+
+    /* Interactive SVG Flowchart */
+    .architecture-box {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      margin-bottom: 4rem;
+      text-align: center;
+    }
+    .svg-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 1.5rem;
+    }
+
+    /* Quick Installation Steps */
+    .steps-container {
+      margin-bottom: 4rem;
+    }
+    .step-card {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--pve-orange);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .step-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+    
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13.5px;
+      color: #79C0FF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+    .code-block code { color: #A5D6FF; }
+    .copy-btn {
+      background: var(--pve-subcard-bg);
+      border: 1px solid var(--pve-card-border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      color: var(--text-bright);
+      border-color: var(--pve-orange);
+    }
+
+    /* Comparison Table */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin-bottom: 4rem;
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--pve-card-bg);
+      text-align: left;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--pve-card-border);
+    }
+    th {
+      background: var(--pve-header-bg);
+      color: var(--text-bright);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .highlight-col {
+      background: rgba(229, 112, 0, 0.05);
+      font-weight: 600;
+    }
+    .badge-check { color: var(--success); font-weight: 700; }
+    .badge-cross { color: var(--danger); font-weight: 700; }
+
+    /* FAQ Section */
+    .faq-list {
+      max-width: 850px;
+      margin: 0 auto 4rem;
+    }
+    .faq-item {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .faq-question {
+      padding: 18px 22px;
+      font-weight: 600;
+      color: var(--text-bright);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .faq-question:hover { color: var(--pve-orange); }
+    .faq-answer {
+      padding: 0 22px 18px;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 14px;
+    }
+    .faq-item.active .faq-answer { display: block; }
+    .faq-icon { transition: transform 0.3s; }
+    .faq-item.active .faq-icon { transform: rotate(180deg); }
+
+    /* Lightbox Modal & Always On Top Toolbar */
+    #lightbox-toolbar {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 99999;
+      display: none;
+      gap: 10px;
+    }
+    .lb-btn {
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      color: var(--text-bright);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transition: all 0.2s;
+    }
+    .lb-btn:hover {
+      border-color: var(--pve-orange);
+      color: var(--pve-orange);
+    }
+
+    #lightbox-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 99990;
+      display: none;
+      overflow: auto;
+      padding: 40px 20px;
+    }
+    .modal-content-wrap {
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #lightbox-img {
+      max-width: 95vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+      transition: width 0.3s, max-width 0.3s;
+      cursor: zoom-in;
+    }
+    #lightbox-img.zoomed {
+      width: 140vw;
+      max-width: none;
+      max-height: none;
+      cursor: zoom-out;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--pve-card-border);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: var(--pve-header-bg);
+    }
+    footer a { color: var(--pve-orange); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.2rem; }
+      .screenshot-comparison { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="#" class="brand">
+      <div class="brand-logo">P</div>
+      <span class="brand-text">pve-cert</span>
+      <span class="brand-tag">Proxmox VE</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features" data-en="Features" data-tw="核心功能">核心功能</a></li>
+      <li><a href="#architecture" data-en="Architecture" data-tw="架構圖">架構圖</a></li>
+      <li><a href="#setup" data-en="Setup Guide" data-tw="一鍵設定">一鍵設定</a></li>
+      <li><a href="#comparison" data-en="Comparison" data-tw="方案比較">方案比較</a></li>
+      <li><a href="#faq" data-en="FAQ" data-tw="常見問題">常見問題</a></li>
+    </ul>
+    <button class="lang-btn" onclick="toggleLanguage()">
+      🌐 <span id="lang-text">English</span>
+    </button>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="status-dot"></span>
+      <span data-en="Supports Proxmox VE 7 / 8 / 9 Datacenter & Single Nodes" data-tw="支援 Proxmox VE 7 / 8 / 9 叢集與單節點">支援 Proxmox VE 7 / 8 / 9 叢集與單節點</span>
+    </div>
+    <h1 data-en="Proxmox VE HTTPS <span>Trusted Lock Icon</span> Everywhere." data-tw="Proxmox VE 鎖頭標示，<span>每台用戶端皆受信任</span>。">
+      Proxmox VE 鎖頭標示，<span>每台用戶端皆受信任</span>。
+    </h1>
+    <p data-en="One command on Proxmox VE server, one command per client. Eliminate browser certificate warnings for 10 years without internet access or public domain names."
+       data-tw="伺服器一個指令，每台用戶端一個指令 — 瀏覽器顯示綠色鎖頭，十年免重設，完全離線可用。">
+      伺服器一個指令，每台用戶端一個指令 — 瀏覽器顯示綠色鎖頭，十年免重設，完全離線可用。
+    </p>
+    <div class="cta-group">
+      <a href="#setup" class="btn btn-primary" data-en="⚡ Quick Start Guide" data-tw="⚡ 快速開始指引">⚡ 快速開始指引</a>
+      <a href="https://github.com/anomixer/pve-cert" target="_blank" class="btn btn-secondary">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub Repository
+      </a>
+    </div>
+
+    <!-- Node status bar mockup -->
+    <div class="pve-bar">
+      <div>
+        <span class="pve-node-name">root@pve1:~#</span> pveproxy status
+      </div>
+      <div class="pve-ssl-badge">
+        🔒 HTTPS Certified (https://pve1.demo.local:8006)
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Screenshots comparison -->
+    <h2 class="section-title" data-en="Say Goodbye to Proxmox VE Warning Screen" data-tw="告別 Proxmox VE 的紅色警告畫面">告別 Proxmox VE 的紅色警告畫面</h2>
+    <p class="section-desc" data-en="Click any screenshot below to inspect full 150% zoom preview" data-tw="點擊下方任意截圖可放大 150% 詳細預覽網頁效果">點擊下方任意截圖可放大 150% 詳細預覽網頁效果</p>
+    
+    <div class="screenshot-comparison">
+      <div class="ss-box" onclick="openLightbox('pic/1.png')">
+        <div class="ss-header before">
+          <span data-en="❌ Before: Default PVE Self-Signed Warning" data-tw="❌ 設定前：Proxmox VE 預設自簽警告">❌ 設定前：Proxmox VE 預設自簽警告</span>
+          <span>Port 8006</span>
+        </div>
+        <img src="pic/1.png" alt="PVE Warning Before" class="ss-img">
+      </div>
+      <div class="ss-box" onclick="openLightbox('pic/s1.png')">
+        <div class="ss-header after">
+          <span data-en="✅ After: Trusted Green Lock Icon" data-tw="✅ 設定後：綠色受信任安全鎖頭">✅ 設定後：綠色受信任安全鎖頭</span>
+          <span>10 Years Valid</span>
+        </div>
+        <img src="pic/s1.png" alt="PVE Lock Icon After" class="ss-img">
+      </div>
+    </div>
+
+    <!-- Core Features Grid -->
+    <h2 id="features" class="section-title" data-en="Designed Exclusively for Proxmox VE" data-tw="專為 Proxmox VE 設計的核心特點">專為 Proxmox VE 設計的核心特點</h2>
+    <p class="section-desc" data-en="No Let's Encrypt renewal hassles, no public domain requirement, 100% offline ready." data-tw="不需要每 90 天重跑憑證、不需公開網域，完全適應隔離網路。">不需要每 90 天重跑憑證、不需公開網域，完全適應隔離網路。</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3 data-en="10-Year Trusted Root CA" data-tw="10 年 Root CA 信任">10 年 Root CA 信任</h3>
+        <p data-en="Generates a 10-year dedicated Root CA and 825-day server certificates with modern RFC constraints (basicConstraints = critical, CA:true)." data-tw="自動產生 10 年專屬 Root CA 與 825 天伺服器憑證，具備現代標準 CA:true 規範，確保 Chrome / Firefox 永不跳警告。">自動產生 10 年專屬 Root CA 與 825 天伺服器憑證，具備現代標準 CA:true 規範，確保 Chrome / Firefox 永不跳警告。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title" data-en="Automated pveproxy Integration" data-tw="自動替換 pveproxy 憑證">自動替換 pveproxy 憑證</div>
+        <p data-en="Automatically updates `/etc/pve/local/pveproxy-ssl.pem` & `pveproxy-ssl.key` and restarts pveproxy/pvedaemon seamlessly." data-tw="自動寫入 `/etc/pve/local/pveproxy-ssl.pem` 與 `pveproxy-ssl.key` 並重載服務，節點憑證即刻生效。">自動寫入 `/etc/pve/local/pveproxy-ssl.pem` 與 `pveproxy-ssl.key` 並重載服務，節點憑證即刻生效。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h3 data-en="Multi-IP & SAN Support" data-tw="支援多重 IP SAN 與 FQDN">支援多重 IP SAN 與 FQDN</h3>
+        <p data-en="Embeds primary LAN IP, Tailscale/VPN IPs, and FQDN into Subject Alternative Name (SAN) so direct IP access stays trusted." data-tw="自動將實體 LAN IP、Tailscale / VPN IP 及 FQDN 包含於憑證 SAN 中，即使直接輸入 IP 連線也不會跳警告。">自動將實體 LAN IP、Tailscale / VPN IP 及 FQDN 包含於憑證 SAN 中，即使直接輸入 IP 連線也不會跳警告。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💻</div>
+        <h3 data-en="Cross-Platform Zero-Dependency Clients" data-tw="跨平台零依賴客戶端">跨平台零依賴客戶端</h3>
+        <p data-en="Native client scripts for Windows (.bat), Linux (.sh), and macOS (.sh). Automatically imports CA to Windows Store, macOS Keychain, and Linux NSS." data-tw="提供 Windows (.bat)、Linux (.sh) 與 macOS (.sh) 客戶端腳本，無痛寫入系統與 Chrome / Firefox 信任庫。">提供 Windows (.bat)、Linux (.sh) 與 macOS (.sh) 客戶端腳本，無痛寫入系統與 Chrome / Firefox 信任庫。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛡️</div>
+        <h3 data-en="100% Offline & Isolated LAN Ready" data-tw="100% 離線隔離內網支援">100% 離線隔離內網支援</h3>
+        <p data-en="Does not require port 80/443 exposure, public DNS API tokens, or internet connectivity. Perfect for air-gapped homelabs & enterprise servers." data-tw="不需開放 Port 80/443、不需 Cloudflare DNS API，完全不需連網，完美適應企業與私有 Homelab 離線環境。">不需開放 Port 80/443、不需 Cloudflare DNS API，完全不需連網，完美適應企業與私有 Homelab 離線環境。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧹</div>
+        <h3 data-en="Clean One-Click Uninstall (-u)" data-tw="一鍵乾淨反安裝 (-u)">一鍵乾淨反安裝 (-u)</h3>
+        <p data-en="Supports `-u` flag on both server and client scripts to seamlessly restore original PVE self-signed certs and remove hosts entries." data-tw="伺服器與用戶端均支援 `-u` 參數，可秒級恢復 PVE 原始備份憑證並乾淨清除系統 hosts 殘留。">伺服器與用戶端均支援 `-u` 參數，可秒級恢復 PVE 原始備份憑證並乾淨清除系統 hosts 殘留。</p>
+      </div>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <h2 id="architecture" class="section-title" data-en="Architecture & Data Flow" data-tw="系統運作架構圖">系統運作架構圖</h2>
+    <p class="section-desc" data-en="How pve-cert establishes local trusted HTTPS for Proxmox VE Web Console" data-tw="pve-cert 如何在不連外網的情況下建立完全受信的 Proxmox VE HTTPS 傳輸通道">pve-cert 如何在不連外網的情況下建立完全受信的 Proxmox VE HTTPS 傳輸通道</p>
+
+    <div class="architecture-box">
+      <div class="svg-container">
+        <svg viewBox="0 0 900 360" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Nodes Group -->
+          <rect x="20" y="20" width="380" height="320" rx="12" fill="#1B1F24" stroke="#E57000" stroke-width="2" stroke-dasharray="6,6"/>
+          <text x="40" y="50" fill="#E57000" font-weight="700" font-size="16">🖥️ Proxmox VE Server Node (pve-cert.sh)</text>
+          
+          <!-- Root CA Box -->
+          <rect x="50" y="80" width="320" height="70" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="70" y="110" fill="#FFFFFF" font-weight="600" font-size="14">🔑 10-Year Local Root CA</text>
+          <text x="70" y="132" fill="#8B949E" font-size="12">/etc/anycert/anycert-ca.crt (chmod 644)</text>
+
+          <!-- Node Cert Box -->
+          <rect x="50" y="170" width="320" height="70" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="70" y="200" fill="#FFFFFF" font-weight="600" font-size="14">📜 Node Cert (SAN: IP + FQDN)</text>
+          <text x="70" y="222" fill="#8B949E" font-size="12">/etc/pve/local/pveproxy-ssl.pem</text>
+
+          <!-- PVE Proxy Box -->
+          <rect x="50" y="260" width="320" height="60" rx="8" fill="#E57000" opacity="0.9"/>
+          <text x="130" y="295" fill="#FFFFFF" font-weight="700" font-size="15">🔒 pveproxy (Port 8006)</text>
+
+          <!-- Arrows -->
+          <path d="M 210 150 L 210 170" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M 210 240 L 210 260" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Client Group -->
+          <rect x="480" y="20" width="400" height="320" rx="12" fill="#1B1F24" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="500" y="50" fill="#FFFFFF" font-weight="700" font-size="16">💻 Client Devices (One-Click Setup)</text>
+
+          <!-- Win Client -->
+          <rect x="510" y="80" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="530" y="108" fill="#A5D6FF" font-weight="600" font-size="13">🪟 Windows: pve-cert-windows.bat</text>
+          <text x="530" y="128" fill="#8B949E" font-size="11">Imports Root CA to Windows Certificate Store</text>
+
+          <!-- Linux Client -->
+          <rect x="510" y="160" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="530" y="188" fill="#A5D6FF" font-weight="600" font-size="13">🐧 Linux: pve-cert-linux.sh</text>
+          <text x="530" y="208" fill="#8B949E" font-size="11">Imports Root CA to Trust Store & Chrome NSSDB</text>
+
+          <!-- Mac Client -->
+          <rect x="510" y="240" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="530" y="268" fill="#A5D6FF" font-weight="600" font-size="13">🍎 macOS: pve-cert-macos.sh</text>
+          <text x="530" y="288" fill="#8B949E" font-size="11">Imports Root CA to System Keychain</text>
+
+          <!-- Connecting Lines -->
+          <path d="M 370 115 C 430 115, 450 112, 510 112" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+          <path d="M 370 115 C 430 115, 450 192, 510 192" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+          <path d="M 370 115 C 430 115, 450 272, 510 272" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#E57000"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Quick Setup Guide -->
+    <h2 id="setup" class="section-title" data-en="Quick Setup Guide" data-tw="兩步快速安裝指引">兩步快速安裝指引</h2>
+    <p class="section-desc" data-en="Step 1 on Proxmox VE Server, Step 2 on Client Devices." data-tw="第一步在 Proxmox VE 伺服器，第二步在用戶端電腦。">第一步在 Proxmox VE 伺服器，第二步在用戶端電腦。</p>
+
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title" data-en="Run on Proxmox VE Server Node (as root)" data-tw="在 Proxmox VE 伺服器節點執行 (以 root 身分)">在 Proxmox VE 伺服器節點執行 (以 root 身分)</div>
+        </div>
+        <p style="font-size:14px; color:var(--text-muted); margin-bottom:8px;" data-en="Download and run pve-cert.sh. Automatically creates Root CA and updates pveproxy." data-tw="下載並執行 pve-cert.sh。腳本會全自動產生 Root CA 並套用至 pveproxy。">下載並執行 pve-cert.sh。腳本會全自動產生 Root CA 並套用至 pveproxy。</p>
+        <div class="code-block">
+          <code>wget https://raw.githubusercontent.com/anomixer/pve-cert/main/pve-cert.sh && bash pve-cert.sh</code>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title" data-en="Run on Each Client Machine (Windows / Linux / macOS)" data-tw="在每台用戶端電腦執行對應腳本">在每台用戶端電腦執行對應腳本</div>
+        </div>
+        <p style="font-size:14px; color:var(--text-muted); margin-bottom:8px;" data-en="Fetches CA certificate automatically from Proxmox VE server IP and configures system trust & hosts." data-tw="自動自 PVE 伺服器 IP 拉取 Root CA 憑證，完成系統信任庫與 hosts 配置。">自動自 PVE 伺服器 IP 拉取 Root CA 憑證，完成系統信任庫與 hosts 配置。</p>
+        
+        <div style="margin-top:12px;">
+          <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🪟 Windows (Administrator CMD / PowerShell):</div>
+          <div class="code-block">
+            <code>pve-cert-windows.bat -s 192.168.1.100</code>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🐧 Linux (Ubuntu / Debian):</div>
+          <div class="code-block">
+            <code>sudo bash pve-cert-linux.sh -s 192.168.1.100</code>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🍎 macOS (Terminal):</div>
+          <div class="code-block">
+            <code>sudo bash pve-cert-macos.sh -s 192.168.1.100</code>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <h2 id="comparison" class="section-title" data-en="Proxmox VE TLS Certificate Solutions Comparison" data-tw="Proxmox VE 憑證解決方案完整比較">Proxmox VE 憑證解決方案完整比較</h2>
+    <p class="section-desc" data-en="See why pve-cert is the easiest & most resilient solution for homelabs and internal networks." data-tw="了解為何 pve-cert 是內部網路與 Homelab 最簡單強健的預防瀏覽器警告方案">了解為何 pve-cert 是內部網路與 Homelab 最簡單強健的預防瀏覽器警告方案</p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th data-en="Feature / Method" data-tw="功能 / 評比項目">功能 / 評比項目</th>
+            <th class="highlight-col">pve-cert (本腳本)</th>
+            <th data-en="PVE Default Cert" data-tw="PVE 預設自簽">PVE 預設自簽</th>
+            <th data-en="ACME (HTTP-01)" data-tw="ACME (HTTP-01)">ACME (HTTP-01)</th>
+            <th data-en="Cloudflare (DNS-01)" data-tw="Cloudflare (DNS-01)">Cloudflare (DNS-01)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-en="Browser Green Lock Icon" data-tw="綠色受信任鎖頭">綠色受信任鎖頭</td>
+            <td class="highlight-col"><span class="badge-check">YES</span> (完成用戶端)</td>
+            <td><span class="badge-cross">NO</span> (提示警告)</td>
+            <td><span class="badge-check">YES</span></td>
+            <td><span class="badge-check">YES</span></td>
+          </tr>
+          <tr>
+            <td data-en="Public Domain Required" data-tw="需公開網域">需公開網域</td>
+            <td class="highlight-col"><span class="badge-check">NO</span> (完全不需要)</td>
+            <td><span class="badge-check">NO</span></td>
+            <td><span class="badge-cross">YES</span></td>
+            <td><span class="badge-cross">YES</span></td>
+          </tr>
+          <tr>
+            <td data-en="Internet Access Required" data-tw="需網際網路連線">需網際網路連線</td>
+            <td class="highlight-col"><span class="badge-check">NO</span> (100% 離線)</td>
+            <td><span class="badge-check">NO</span></td>
+            <td><span class="badge-cross">YES</span> (Port 80)</td>
+            <td><span class="badge-cross">YES</span> (DNS API)</td>
+          </tr>
+          <tr>
+            <td data-en="Validity Duration" data-tw="憑證有效期">憑證有效期</td>
+            <td class="highlight-col">10 年 Root CA</td>
+            <td>1 年 (須重做)</td>
+            <td>90 天 (自動更新)</td>
+            <td>90 天 (自動更新)</td>
+          </tr>
+          <tr>
+            <td data-en="Direct IP Access Trusted" data-tw="直接 IP 連線受信任">直接 IP 連線受信任</td>
+            <td class="highlight-col"><span class="badge-check">YES</span> (SAN 包含 IP)</td>
+            <td><span class="badge-cross">NO</span></td>
+            <td><span class="badge-cross">NO</span></td>
+            <td><span class="badge-cross">NO</span></td>
+          </tr>
+          <tr>
+            <td data-en="Hostnames Exposed to CT Logs" data-tw="主機名曝露於 CT 日誌">主機名曝露於 CT 日誌</td>
+            <td class="highlight-col"><span class="badge-check">NO</span> (安全隱密)</td>
+            <td><span class="badge-check">NO</span></td>
+            <td><span class="badge-cross">YES</span></td>
+            <td><span class="badge-cross">YES</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FAQ Accordion -->
+    <h2 id="faq" class="section-title" data-en="Frequently Asked Questions" data-tw="常見問題與解答 (FAQ)">常見問題與解答 (FAQ)</h2>
+    <p class="section-desc" data-en="Common questions about Proxmox VE certificates and setup." data-tw="解答關於 Proxmox VE 憑證與用戶端信任的常見疑問">解答關於 Proxmox VE 憑證與用戶端信任的常見疑問</p>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q1: Does pve-cert work on single computers without other LAN clients?" data-tw="Q1: 可以在單一一台電腦上完成 Proxmox VE 的受信設定嗎？">Q1: 可以在單一一台電腦上完成 Proxmox VE 的受信設定嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes! Simply run pve-cert.sh on the Proxmox VE server node. Then on your managing computer, run the client script (pve-cert-windows.bat / pve-cert-linux.sh / pve-cert-macos.sh) specifying the PVE server IP. Your browser will instantly display a green lock icon." data-tw="完全可以！只需在 Proxmox VE 伺服器上執行 `pve-cert.sh`，隨後在你用來管理的電腦上執行對應作業系統的客戶端腳本（`pve-cert-windows.bat` / `pve-cert-linux.sh` / `pve-cert-macos.sh` -s <PVE_IP>），瀏覽器存取 Proxmox VE Web UI (:8006) 即可秒亮綠色鎖頭。">
+          完全可以！只需在 Proxmox VE 伺服器上執行 `pve-cert.sh`，隨後在你用來管理的電腦上執行對應作業系統的客戶端腳本（`pve-cert-windows.bat` / `pve-cert-linux.sh` / `pve-cert-macos.sh` -s &lt;PVE_IP&gt;），瀏覽器存取 Proxmox VE Web UI (:8006) 即可秒亮綠色鎖頭。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q2: What happens when Proxmox VE is upgraded to PVE 8 or PVE 9?" data-tw="Q2: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？">Q2: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="No re-configuration is needed! The Root CA imported to your client devices is valid for 10 years. Even after upgrading PVE major versions, clients remain 100% trusted." data-tw="不需要！匯入至用戶端電腦的 Root CA 憑證具有 10 年有效期。即使 Proxmox VE 進行跨版本升級，用戶端依然會持續信任該節點憑證。">
+          不需要！匯入至用戶端電腦的 Root CA 憑證具有 10 年有效期。即使 Proxmox VE 進行跨版本升級，用戶端依然會持續信任該節點憑證。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q3: How to uninstall and restore original Proxmox VE certificates?" data-tw="Q3: 如何反安裝並恢復 Proxmox VE 原始備份憑證？">Q3: 如何反安裝並恢復 Proxmox VE 原始備份憑證？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Run `bash pve-cert.sh -u` on the Proxmox VE node. It automatically restores original certificate backups and restarts pveproxy. Run `pve-cert-windows.bat -u` (or .sh -u) on client machines to remove CA certs from trust stores." data-tw="只需在 PVE 節點上執行 `bash pve-cert.sh -u`，腳本會自動還原 `/etc/pve/local/` 下的原始憑證備份並重啟 pveproxy；用戶端則執行 `pve-cert-windows.bat -u` 即可乾淨清除系統信任庫與 hosts 殘留。">
+          只需在 PVE 節點上執行 `bash pve-cert.sh -u`，腳本會自動還原 `/etc/pve/local/` 下的原始憑證備份並重啟 pveproxy；用戶端則執行 `pve-cert-windows.bat -u` 即可乾淨清除系統信任庫與 hosts 殘留。
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>pve-cert &copy; 2026 — Released under the MIT License.</p>
+    <p style="margin-top:6px; font-size:13px;">
+      <a href="https://github.com/anomixer/pve-cert" target="_blank">GitHub Repository</a> &bull; 
+      <a href="https://github.com/anomixer/anycert" target="_blank">anycert Multi-Service Suite</a>
+    </p>
+  </footer>
+
+  <!-- Lightbox Modal & Always-On-Top Toolbar -->
+  <div id="lightbox-toolbar">
+    <button class="lb-btn" onclick="toggleZoom()" id="lb-zoom-btn">🔍 放大 150%</button>
+    <button class="lb-btn" onclick="closeLightbox()">✕ 關閉</button>
+  </div>
+
+  <div id="lightbox-modal" onclick="closeLightbox(event)">
+    <div class="modal-content-wrap">
+      <img id="lightbox-img" src="" alt="Preview" onclick="event.stopPropagation(); toggleZoom();">
+    </div>
+  </div>
+
+  <script>
+    // Dual Language Switcher
+    let currentLang = 'tw';
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'tw' ? 'en' : 'tw';
+      document.getElementById('lang-text').innerText = currentLang === 'tw' ? 'English' : '繁體中文';
+
+      const elements = document.querySelectorAll('[data-en][data-tw]');
+      elements.forEach(el => {
+        el.innerText = el.getAttribute(`data-${currentLang}`);
+      });
+    }
+
+    // FAQ Accordion
+    function toggleFaq(headerEl) {
+      const item = headerEl.parentElement;
+      item.classList.toggle('active');
+    }
+
+    // Copy Code Helper
+    function copyCode(btn) {
+      const code = btn.parentElement.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.style.color = '#2EA043';
+        setTimeout(() => {
+          btn.innerText = orig;
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    // Lightbox Modal Logic
+    let isZoomed = false;
+
+    function openLightbox(src) {
+      const modal = document.getElementById('lightbox-modal');
+      const img = document.getElementById('lightbox-img');
+      const toolbar = document.getElementById('lightbox-toolbar');
+
+      img.src = src;
+      img.classList.remove('zoomed');
+      isZoomed = false;
+      document.getElementById('lb-zoom-btn').innerText = '🔍 放大 150%';
+
+      modal.style.display = 'block';
+      toolbar.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox(e) {
+      if (e && e.target && e.target.tagName === 'IMG') return;
+      const modal = document.getElementById('lightbox-modal');
+      const toolbar = document.getElementById('lightbox-toolbar');
+
+      modal.style.display = 'none';
+      toolbar.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function toggleZoom() {
+      const img = document.getElementById('lightbox-img');
+      const btn = document.getElementById('lb-zoom-btn');
+      isZoomed = !isZoomed;
+
+      if (isZoomed) {
+        img.classList.add('zoomed');
+        btn.innerText = '🔍 還原 100%';
+      } else {
+        img.classList.remove('zoomed');
+        btn.innerText = '🔍 放大 150%';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # pve-cert — Proxmox HTTPS，每台用戶端都受信任。一鍵設定、免網域、免連網、十年免重設。
 
-[English](README.md) | **繁體中文**
+[English](README.md) | **繁體中文** | 🌐 [官方網站 (GitHub Pages)](https://anomixer.github.io/pve-cert/)
 
 瀏覽器的 Proxmox 憑證警告，永久消失。
 
