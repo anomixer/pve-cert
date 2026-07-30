@@ -914,7 +914,7 @@
 
       const elements = document.querySelectorAll('[data-en][data-tw]');
       elements.forEach(el => {
-        el.innerText = el.getAttribute(`data-${currentLang}`);
+        el.innerHTML = el.getAttribute(`data-${currentLang}`);
       });
     }
 
