@@ -23,7 +23,16 @@ echo.
 :: ── Check Administrator privileges ──────────────────────────
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Please run this script as Administrator!
+    echo [INFO] This script requires Administrator privileges.
+    set /p ELEVATE_CONFIRM=  Would you like to elevate to Administrator now? [y/N]: 
+    if /i "!ELEVATE_CONFIRM!"=="y" (
+        echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
+        echo UAC.ShellExecute "%~dp0%~nx0", "%*", "", "runas", 1 >> "%temp%\getadmin.vbs"
+        "%temp%\getadmin.vbs"
+        del "%temp%\getadmin.vbs"
+        exit /b 0
+    )
+    echo [ERROR] Administrator privileges are required to run this script.
     echo.
     echo Right-click pve-cert-windows.bat and select "Run as administrator"
     echo.
@@ -36,7 +45,42 @@ set DATA_DIR=%ProgramData%\pve-cert
 if not exist "!DATA_DIR!" mkdir "!DATA_DIR!"
 set INFO_FILE=!DATA_DIR!\pve-cert-info.txt
 
-if /i "%~1"=="-u" goto do_uninstall
+:: ── Parse CLI arguments ──────────────────────────────────────
+set "SERVER_IP_ARG="
+set "UNINSTALL_ARG=0"
+
+:parse_args_loop
+if "%~1"=="" goto after_parse_args
+if /i "%~1"=="-s" (
+    set "SERVER_IP_ARG=%~2"
+    shift
+    shift
+    goto parse_args_loop
+)
+if /i "%~1"=="/s" (
+    set "SERVER_IP_ARG=%~2"
+    shift
+    shift
+    goto parse_args_loop
+)
+if /i "%~1"=="-u" (
+    set "UNINSTALL_ARG=1"
+    shift
+    goto parse_args_loop
+)
+if /i "%~1"=="--uninstall" (
+    set "UNINSTALL_ARG=1"
+    shift
+    goto parse_args_loop
+)
+if not "%~1"=="" (
+    if "!SERVER_IP_ARG!"=="" set "SERVER_IP_ARG=%~1"
+    shift
+    goto parse_args_loop
+)
+:after_parse_args
+
+if "!UNINSTALL_ARG!"=="1" goto do_uninstall
 
 :: ============================================================
 ::  INSTALL MODE
@@ -51,18 +95,42 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: ── Show existing sites ──────────────────────────────────────
+set HAS_SERVERS=0
 if exist "!INFO_FILE!" (
-    echo   Currently registered PVE sites:
-    echo   -----------------------------------
-    for /f "tokens=1,2" %%A in (!INFO_FILE!) do echo     %%A  ^<^>  %%B
-    echo.
+    for /f "tokens=1,2" %%A in (!INFO_FILE!) do set HAS_SERVERS=1
 )
+
+if not "!SERVER_IP_ARG!"=="" goto do_skip_menu
+if not "!HAS_SERVERS!"=="1" goto do_skip_menu
+
+echo   Currently registered Proxmox VE servers:
+echo   -----------------------------------
+for /f "tokens=1,2" %%A in (!INFO_FILE!) do echo     %%A  ^<^>  %%B
+echo.
+echo Please select an action:
+echo   [1] Add/Import a new PVE certificate [Default]
+echo   [2] Remove/Uninstall an existing PVE certificate
+echo   [3] Exit
+echo.
+set /p CLIENT_ACTION=  Please choose [1-3, default: 1]: 
+if "!CLIENT_ACTION!"=="" set CLIENT_ACTION=1
+if "!CLIENT_ACTION!"=="2" goto do_uninstall
+if "!CLIENT_ACTION!"=="3" exit /b 0
+echo.
+
+:do_skip_menu
 
 :: ── Step 1 ───────────────────────────────────────────────────
 echo [Step 1/5] Enter Proxmox VE server information
 echo -----------------------------------------------------
 echo.
+
+if not "!SERVER_IP_ARG!"=="" (
+    set "PVE_IP=!SERVER_IP_ARG!"
+    echo   Using PVE IP from command line: !PVE_IP!
+    goto after_ask_ip
+)
+
 set /p PVE_IP=  PVE IP address [e.g. 192.168.21.60]: 
 if "!PVE_IP!"=="" (
     echo [ERROR] IP cannot be empty.
@@ -87,7 +155,13 @@ if exist "!INFO_FILE!" (
     )
 )
 
-set /p PVE_USER=  SSH username [default: root]: 
+:after_ask_ip
+
+if "!SERVER_IP_ARG!"=="" (
+    set /p PVE_USER=  SSH username [default: root]: 
+) else (
+    set PVE_USER=root
+)
 if "!PVE_USER!"=="" set PVE_USER=root
 
 echo.
@@ -127,11 +201,12 @@ echo.
 echo   [OK] Certificate downloaded!
 echo.
 
-:: ── Get cert thumbprint and save to info file later ──────────
+:: ── Get cert thumbprint via certutil (PowerShell-free) ───────
 set CERT_THUMB=
-for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "(New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 '!CA_LOCAL!').Thumbprint"`) do (
+for /f "skip=1 tokens=*" %%T in ('certutil -hashfile "!CA_LOCAL!" SHA1 2^>nul') do (
     if "!CERT_THUMB!"=="" set CERT_THUMB=%%T
 )
+set CERT_THUMB=!CERT_THUMB: =!
 echo   [INFO] Cert thumbprint: !CERT_THUMB!
 echo.
 
@@ -141,8 +216,26 @@ echo -----------------------------------------------------
 echo.
 
 set PVE_DNS=
-for /f "usebackq delims=" %%H in (`powershell -NoProfile -Command "& ssh -o StrictHostKeyChecking=no '!PVE_USER!@!PVE_IP!' 'hostname -f' 2>$null"`) do (
-    if "!PVE_DNS!"=="" set PVE_DNS=%%H
+set CONF_TMP=!DATA_DIR!\pve-cert-conf.tmp
+if exist "!CONF_TMP!" del "!CONF_TMP!"
+
+:: Download remote config to local tmp file, then parse (avoids CMD quote-in-for-clause bug)
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "!PVE_USER!@!PVE_IP!" "cat /etc/pve-cert/pve-cert.conf 2>/dev/null" > "!CONF_TMP!" 2>nul
+if exist "!CONF_TMP!" (
+    for /f "usebackq tokens=1,2 delims==" %%A in ("!CONF_TMP!") do (
+        if "%%A"=="SERVER_FQDN" set "PVE_DNS=%%B"
+    )
+    del "!CONF_TMP!" >nul 2>&1
+)
+
+:: Strip surrounding quotes if present (e.g. SERVER_FQDN="pvenn")
+set PVE_DNS=!PVE_DNS:"=!
+
+:: Fallback: hostname -f
+if "!PVE_DNS!"=="" (
+    for /f "usebackq delims=" %%H in (`ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "!PVE_USER!@!PVE_IP!" "hostname -f" 2^>nul`) do (
+        if "!PVE_DNS!"=="" set PVE_DNS=%%H
+    )
 )
 
 if "!PVE_DNS!"=="" goto dns_fallback
@@ -150,6 +243,7 @@ goto dns_ok
 
 :dns_fallback
 echo   [WARN] Auto-detection failed.
+echo   [HINT] Check that /etc/pve-cert/pve-cert.conf exists on the PVE server (run pve-cert.sh first).
 set /p PVE_DNS=  PVE DNS name [e.g. proxmox.local]: 
 if "!PVE_DNS!"=="" (
     echo [ERROR] DNS name cannot be empty.
@@ -243,9 +337,6 @@ echo   Open browser: https://!PVE_DNS!:8006
 echo.
 echo   Uninstall   : pve-cert-windows.bat -u
 echo.
-
-set /p OPEN_BROWSER=  Open PVE Web UI now? [y/N]: 
-if /i "!OPEN_BROWSER!"=="y" start https://!PVE_DNS!:8006
 
 goto end
 

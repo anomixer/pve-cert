@@ -40,10 +40,33 @@ done
 
 mkdir -p "$DATA_DIR"
 
+# ── CLI Arguments Parsing ────────────────────────────────────
+SERVER_IP_ARG=""
+UNINSTALL_ARG=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -s|--server|--server-ip)
+      SERVER_IP_ARG="$2"
+      shift 2
+      ;;
+    -u|--uninstall)
+      UNINSTALL_ARG=true
+      shift
+      ;;
+    *)
+      if [[ "$1" != -* && -z "$SERVER_IP_ARG" ]]; then
+        SERVER_IP_ARG="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
 # ============================================================
 #  UNINSTALL MODE
 # ============================================================
-if [[ "${1:-}" == "-u" ]]; then
+do_uninstall() {
     echo "[Uninstall Mode] Removing PVE certificate and hosts entry"
     echo "-----------------------------------------------------"
     echo
@@ -142,36 +165,66 @@ if [[ "${1:-}" == "-u" ]]; then
     echo "  Run pve-cert.sh -u on each PVE server too."
     echo
     exit 0
+}
+
+if [[ "$UNINSTALL_ARG" == true ]]; then
+    do_uninstall
 fi
 
 # ============================================================
 #  INSTALL MODE
 # ============================================================
 
-# ── Show existing sites ───────────────────────────────────────
-if [[ -f "$INFO_FILE" ]]; then
-    echo "  Currently registered PVE sites:"
+HAS_SERVERS=0
+if [[ -f "$INFO_FILE" && -s "$INFO_FILE" ]]; then
+    HAS_SERVERS=1
+fi
+
+if [[ $HAS_SERVERS -eq 1 && -z "$SERVER_IP_ARG" ]]; then
+    echo "  Currently registered Proxmox VE servers:"
     echo "  -----------------------------------"
     awk '{print "    " $1 "  <>  " $2}' "$INFO_FILE"
     echo
+    echo "Please select an action:"
+    echo "  [1] Add/Import a new PVE certificate [Default]"
+    echo "  [2] Remove/Uninstall an existing PVE certificate"
+    echo "  [3] Exit"
+    echo ""
+    read -rp "  Please choose [1-3, default: 1]: " CLIENT_ACTION
+    CLIENT_ACTION=${CLIENT_ACTION:-1}
+    if [[ "$CLIENT_ACTION" == "2" ]]; then
+        do_uninstall
+    elif [[ "$CLIENT_ACTION" == "3" ]]; then
+        echo "  Exiting..."
+        exit 0
+    fi
 fi
 
 # ── Step 1 ───────────────────────────────────────────────
 echo "[Step 1/5] Enter Proxmox VE server information"
 echo "-----------------------------------------------------"
 echo
-read -rp "  PVE IP address [e.g. 192.168.21.60]: " PVE_IP
-[[ -z "$PVE_IP" ]] && { echo "[ERROR] IP cannot be empty."; exit 1; }
+if [[ -n "$SERVER_IP_ARG" ]]; then
+    PVE_IP="$SERVER_IP_ARG"
+    echo "  Using PVE IP from command line: $PVE_IP"
+else
+    read -rp "  PVE IP address [e.g. 192.168.21.60]: " PVE_IP
+    [[ -z "$PVE_IP" ]] && { echo "[ERROR] IP cannot be empty."; exit 1; }
+fi
 
-if [[ -f "$INFO_FILE" ]] && grep -q "^$PVE_IP " "$INFO_FILE"; then
+if [[ -f "$INFO_FILE" ]] && grep -q "^$PVE_IP " "$INFO_FILE" && [[ -z "$SERVER_IP_ARG" ]]; then
     echo "  [WARN] This IP is already registered."
     echo
     read -rp "  Re-import anyway? [y/N]: " REIMPORT
     [[ "$REIMPORT" =~ ^[Yy]$ ]] || { echo "  Aborted."; exit 0; }
 fi
 
-read -rp "  SSH username [default: root]: " PVE_USER
-PVE_USER=${PVE_USER:-root}
+if [[ -z "$SERVER_IP_ARG" ]]; then
+    read -rp "  SSH username [default: root]: " PVE_USER
+    PVE_USER=${PVE_USER:-root}
+else
+    PVE_USER="root"
+fi
 
 echo
 echo "  [NOTE] You will be prompted for the SSH password below."
@@ -213,10 +266,16 @@ echo "[Step 3/5] Auto-detecting PVE DNS name via SSH"
 echo "-----------------------------------------------------"
 echo
 
-PVE_DNS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${PVE_USER}@${PVE_IP}" 'hostname -f' 2>/dev/null || true)
+PVE_DNS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${PVE_USER}@${PVE_IP}" \
+    'grep "^SERVER_FQDN=" /etc/pve-cert/pve-cert.conf 2>/dev/null | cut -d= -f2 | sed s/\"//g' 2>/dev/null || true)
+
+if [[ -z "$PVE_DNS" ]]; then
+    PVE_DNS=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${PVE_USER}@${PVE_IP}" 'hostname -f' 2>/dev/null || true)
+fi
 
 if [[ -z "$PVE_DNS" ]]; then
     echo "  [WARN] Auto-detection failed."
+    echo "  [HINT] If using a non-root SSH user, check that /etc/pve-cert/pve-cert.conf is readable (chmod 644)."
     read -rp "  PVE DNS name [e.g. proxmox.local]: " PVE_DNS
     [[ -z "$PVE_DNS" ]] && { echo "[ERROR] DNS name cannot be empty."; exit 1; }
 fi
@@ -290,8 +349,3 @@ echo "  Open browser: https://${PVE_DNS}:8006"
 echo
 echo "  Uninstall   : sudo bash pve-cert-macos.sh -u"
 echo
-
-read -rp "  Open PVE Web UI now? [y/N]: " OPEN_BROWSER
-if [[ "$OPEN_BROWSER" =~ ^[Yy]$ ]]; then
-    open "https://${PVE_DNS}:8006"
-fi

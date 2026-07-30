@@ -236,38 +236,60 @@ sudo bash pve-cert.sh
 
 ---
 
-### 步驟二 — 在每台用戶端執行
+### 步驟二 — 在各台用戶端機器上執行
 
-依作業系統執行對應腳本：
+您可以選擇 **CLI 自動化模式**（零互動）或 **互動選單模式** 執行適合您作業系統的腳本：
 
-**Windows** — 右鍵點擊 `pve-cert-windows.bat` → 以系統管理員身分執行
-```bat
-pve-cert-windows.bat
+#### 方案 A：CLI 自動化模式 (推薦 ⭐)
+帶入 `-s <SERVER_IP>` 參數即可跳過所有詢問選單，自動完成憑證下載與信任導入：
+
+**Windows（以系統管理員身分開啟 CMD / PowerShell）：**
+```cmd
+pve-cert-windows.bat -s 192.168.21.60
 ```
 
-**Linux（Ubuntu / Debian）**
+**Linux（Ubuntu / Debian）：**
 ```bash
-sudo bash pve-cert-linux.sh
+sudo bash pve-cert-linux.sh -s 192.168.21.60
 ```
 
-**macOS**
+**macOS：**
 ```bash
-sudo bash pve-cert-macos.sh
+sudo bash pve-cert-macos.sh -s 192.168.21.60
+```
+
+#### 方案 B：互動選單模式
+不帶參數直接執行腳本，即可使用文字步驟引導：
+
+- **Windows：** 右鍵點擊 `pve-cert-windows.bat` → 以系統管理員身分執行
+- **Linux：** `sudo bash pve-cert-linux.sh`
+- **macOS：** `sudo bash pve-cert-macos.sh`
+
+當電腦上已註冊過 PVE 伺服器時，系統會自動彈出管理選單：
+```text
+  Currently registered Proxmox VE servers:
+  -----------------------------------
+    192.168.21.60  <>  pve.local
+
+Please select an action:
+  [1] Add/Import a new PVE certificate [Default]
+  [2] Remove/Uninstall an existing PVE certificate
+  [3] Exit
 ```
 
 三個腳本執行流程相同：
-1. 詢問 PVE IP 位址與 SSH 使用者名稱
+1. 詢問 PVE IP 位址與 SSH 使用者名稱（帶入 `-s` 參數時自動代入）
 2. 透過 `scp` 從 PVE 下載 `pve-local-ca.crt`（提示輸入一次 SSH 密碼）
 3. 透過 `ssh hostname -f` 自動偵測 PVE FQDN
 4. 新增項目至系統 hosts 檔案
 5. 將 CA 憑證匯入作業系統信任存放區
-6. 可選：在預設瀏覽器開啟 PVE Web UI
 
 **Linux 額外步驟：** 同時自動將 CA 憑證匯入 Chrome、Chromium 及 Firefox（包含 Ubuntu 21.10+ 以 snap 安裝的 Firefox）的 NSS 存放區，無需任何手動瀏覽器操作。
 
 **多台用戶端：** 在每台需要存取 PVE Web UI 且不顯示憑證警告的機器上分別執行對應腳本。
 
 **多個 PVE 節點：** 在同一台機器上針對每個 PVE 節點各執行一次用戶端腳本。腳本會累積網站項目而不覆蓋現有資料 — 每個網站以 IP、FQDN 及憑證指紋追蹤。
+
 
 ---
 

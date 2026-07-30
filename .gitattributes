@@ -1,0 +1,4 @@
+* text=auto
+*.md text eol=crlf
+*.bat -text
+*.sh -text

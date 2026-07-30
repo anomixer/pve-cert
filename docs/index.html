@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>pve-cert — Proxmox VE Self-Hosted HTTPS Certificate Solution</title>
   <meta name="description" content="One command for Proxmox VE server, one command per client. 10-year trusted Root CA & HTTPS lock for Proxmox VE 7/8/9 without internet or public domain.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -61,30 +62,43 @@
       text-decoration: none;
     }
     .brand-logo {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       background: linear-gradient(135deg, var(--pve-orange), #FF9526);
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
       font-weight: 800;
-      font-size: 18px;
+      font-size: 19px;
       box-shadow: 0 0 12px rgba(229, 112, 0, 0.4);
+      position: relative;
+    }
+    .brand-logo::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      border: 2px solid var(--pve-header-bg);
     }
     .brand-text {
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 22px;
+      font-weight: 800;
       color: var(--text-bright);
       letter-spacing: -0.5px;
     }
     .brand-tag {
       background: var(--pve-orange-light);
       color: var(--pve-orange);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
       border-radius: 12px;
       border: 1px solid rgba(229, 112, 0, 0.3);
       text-transform: uppercase;
@@ -93,26 +107,32 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 6px;
       list-style: none;
     }
     .nav-links a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
     }
-    .nav-links a:hover { color: var(--pve-orange); }
+    .nav-links a:hover {
+      color: var(--pve-orange);
+      background: rgba(229, 112, 0, 0.12);
+      text-decoration: none;
+    }
 
     .lang-btn {
       background: var(--pve-subcard-bg);
       border: 1px solid var(--pve-card-border);
       color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 6px;
+      padding: 7px 13px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 0.9rem;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -247,6 +267,7 @@
       color: var(--text-bright);
       text-align: center;
       margin-bottom: 0.5rem;
+      scroll-margin-top: 90px;
     }
     .section-desc {
       text-align: center;
@@ -337,14 +358,21 @@
       background: var(--pve-card-bg);
       border: 1px solid var(--pve-card-border);
       border-radius: var(--border-radius);
-      padding: 2rem;
+      padding: 2rem 1.25rem;
       margin-bottom: 4rem;
       text-align: center;
     }
     .svg-container {
       width: 100%;
+      max-width: 100%;
+      margin: 1rem auto 0;
       overflow-x: auto;
-      margin-top: 1.5rem;
+    }
+    .svg-container svg {
+      width: 100%;
+      height: auto;
+      min-width: 850px;
+      display: block;
     }
 
     /* Quick Installation Steps */
@@ -550,10 +578,62 @@
     footer a { color: var(--pve-orange); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
 
+    .nav-toggle {
+      display: none;
+      background: var(--pve-card-bg);
+      border: 1px solid var(--pve-card-border);
+      color: var(--text-bright);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-toggle:hover {
+      border-color: var(--pve-orange);
+      color: var(--pve-orange);
+    }
+
     @media (max-width: 768px) {
       .hero h1 { font-size: 2.2rem; }
       .screenshot-comparison { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
+
+      .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: rgba(13, 17, 23, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--pve-card-border);
+        padding: 16px;
+        flex-direction: column;
+        gap: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        z-index: 999;
+      }
+
+      .nav-links.active {
+        display: flex;
+      }
+
+      .nav-links a {
+        font-size: 1rem;
+        padding: 12px 16px;
+        width: 100%;
+        border: 1px solid var(--pve-card-border);
+        background: var(--pve-card-bg);
+        border-radius: 8px;
+        text-align: center;
+      }
     }
   </style>
 </head>
@@ -573,9 +653,16 @@
       <li><a href="#comparison" data-en="Comparison" data-tw="方案比較">方案比較</a></li>
       <li><a href="#faq" data-en="FAQ" data-tw="常見問題">常見問題</a></li>
     </ul>
-    <button class="lang-btn" onclick="toggleLanguage()">
-      🌐 <span id="lang-text">English</span>
-    </button>
+    <div class="nav-controls" style="display:flex; align-items:center; gap:10px;">
+      <button class="lang-btn" onclick="toggleLanguage()">
+        🌐 <span id="lang-text">English</span>
+      </button>
+      <a href="https://github.com/anomixer/pve-cert" target="_blank" class="lang-btn" style="text-decoration:none;" aria-label="GitHub Repository">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <button class="nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle Navigation">☰</button>
+    </div>
   </nav>
 
   <!-- Hero Section -->
@@ -584,8 +671,8 @@
       <span class="status-dot"></span>
       <span data-en="Supports Proxmox VE 7 / 8 / 9 Datacenter & Single Nodes" data-tw="支援 Proxmox VE 7 / 8 / 9 叢集與單節點">支援 Proxmox VE 7 / 8 / 9 叢集與單節點</span>
     </div>
-    <h1 data-en="Proxmox VE HTTPS <span>Trusted Lock Icon</span> Everywhere." data-tw="Proxmox VE 鎖頭標示，<span>每台用戶端皆受信任</span>。">
-      Proxmox VE 鎖頭標示，<span>每台用戶端皆受信任</span>。
+    <h1 data-en="One-Click Proxmox VE <span>HTTPS</span><br>Zero Browser Warnings Guaranteed" data-tw="一鍵建立 Proxmox VE 受信 <span>HTTPS</span><br>徹底消除瀏覽器「不安全」警告">
+      一鍵建立 Proxmox VE 受信 <span>HTTPS</span><br>徹底消除瀏覽器「不安全」警告
     </h1>
     <p data-en="One command on Proxmox VE server, one command per client. Eliminate browser certificate warnings for 10 years without internet access or public domain names."
        data-tw="伺服器一個指令，每台用戶端一個指令 — 瀏覽器顯示綠色鎖頭，十年免重設，完全離線可用。">
@@ -677,52 +764,53 @@
 
     <div class="architecture-box">
       <div class="svg-container">
-        <svg viewBox="0 0 900 360" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <!-- Background Nodes Group -->
-          <rect x="20" y="20" width="380" height="320" rx="12" fill="#1B1F24" stroke="#E57000" stroke-width="2" stroke-dasharray="6,6"/>
-          <text x="40" y="50" fill="#E57000" font-weight="700" font-size="16">🖥️ Proxmox VE Server Node (pve-cert.sh)</text>
+        <svg viewBox="0 0 980 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <!-- Server Node Group -->
+          <rect x="20" y="18" width="445" height="364" rx="12" fill="#1B1F24" stroke="#E57000" stroke-width="2" stroke-dasharray="6,6"/>
+          <image href="proxmox-logo.png" x="38" y="27" width="34" height="34"/>
+          <text x="82" y="52" fill="#E57000" font-weight="700" font-size="20" data-en="Proxmox VE Server Node (pve-cert.sh)" data-tw="Proxmox VE 伺服器節點 (pve-cert.sh)">Proxmox VE Server Node (pve-cert.sh)</text>
           
           <!-- Root CA Box -->
-          <rect x="50" y="80" width="320" height="70" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
-          <text x="70" y="110" fill="#FFFFFF" font-weight="600" font-size="14">🔑 10-Year Local Root CA</text>
-          <text x="70" y="132" fill="#8B949E" font-size="12">/etc/anycert/anycert-ca.crt (chmod 644)</text>
+          <rect x="45" y="82" width="395" height="76" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="70" y="114" fill="#FFFFFF" font-weight="600" font-size="16.5" data-en="🔑 10-Year Local Root CA" data-tw="🔑 10 年專屬 Local Root CA">🔑 10-Year Local Root CA</text>
+          <text x="70" y="139" fill="#8B949E" font-size="13.5" data-en="/root/pve-local-ca.crt (Root CA Cert)" data-tw="/root/pve-local-ca.crt (Root CA 憑證)">/root/pve-local-ca.crt (Root CA Cert)</text>
 
           <!-- Node Cert Box -->
-          <rect x="50" y="170" width="320" height="70" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
-          <text x="70" y="200" fill="#FFFFFF" font-weight="600" font-size="14">📜 Node Cert (SAN: IP + FQDN)</text>
-          <text x="70" y="222" fill="#8B949E" font-size="12">/etc/pve/local/pveproxy-ssl.pem</text>
+          <rect x="45" y="180" width="395" height="76" rx="8" fill="#22272E" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="70" y="212" fill="#FFFFFF" font-weight="600" font-size="16.5" data-en="📜 Node Cert (SAN: IP + FQDN)" data-tw="📜 節點憑證 (SAN: IP + FQDN)">📜 Node Cert (SAN: IP + FQDN)</text>
+          <text x="70" y="237" fill="#8B949E" font-size="13.5">/etc/pve/local/pveproxy-ssl.pem</text>
 
           <!-- PVE Proxy Box -->
-          <rect x="50" y="260" width="320" height="60" rx="8" fill="#E57000" opacity="0.9"/>
-          <text x="130" y="295" fill="#FFFFFF" font-weight="700" font-size="15">🔒 pveproxy (Port 8006)</text>
+          <rect x="45" y="278" width="395" height="66" rx="8" fill="#E57000" opacity="0.9"/>
+          <text x="150" y="318" fill="#FFFFFF" font-weight="700" font-size="17">🔒 pveproxy (Port 8006)</text>
 
           <!-- Arrows -->
-          <path d="M 210 150 L 210 170" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
-          <path d="M 210 240 L 210 260" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M 242 158 L 242 180" fill="none" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M 242 256 L 242 278" fill="none" stroke="#E57000" stroke-width="2" marker-end="url(#arrow)"/>
 
           <!-- Client Group -->
-          <rect x="480" y="20" width="400" height="320" rx="12" fill="#1B1F24" stroke="#2B313A" stroke-width="1.5"/>
-          <text x="500" y="50" fill="#FFFFFF" font-weight="700" font-size="16">💻 Client Devices (One-Click Setup)</text>
+          <rect x="515" y="18" width="445" height="364" rx="12" fill="#1B1F24" stroke="#2B313A" stroke-width="1.5"/>
+          <text x="545" y="52" fill="#FFFFFF" font-weight="700" font-size="20" data-en="💻 Client Devices (One-Click Setup)" data-tw="💻 用戶端裝置 (一鍵自動化信任)">💻 Client Devices (One-Click Setup)</text>
 
           <!-- Win Client -->
-          <rect x="510" y="80" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
-          <text x="530" y="108" fill="#A5D6FF" font-weight="600" font-size="13">🪟 Windows: pve-cert-windows.bat</text>
-          <text x="530" y="128" fill="#8B949E" font-size="11">Imports Root CA to Windows Certificate Store</text>
+          <rect x="540" y="82" width="395" height="76" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="560" y="114" fill="#A5D6FF" font-weight="600" font-size="16">🪟 Windows: pve-cert-windows.bat</text>
+          <text x="560" y="139" fill="#8B949E" font-size="13" data-en="Imports Root CA to Windows Certificate Store" data-tw="自動匯入 Root CA 至 Windows 系統憑證信任庫">Imports Root CA to Windows Certificate Store</text>
 
           <!-- Linux Client -->
-          <rect x="510" y="160" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
-          <text x="530" y="188" fill="#A5D6FF" font-weight="600" font-size="13">🐧 Linux: pve-cert-linux.sh</text>
-          <text x="530" y="208" fill="#8B949E" font-size="11">Imports Root CA to Trust Store & Chrome NSSDB</text>
+          <rect x="540" y="180" width="395" height="76" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="560" y="212" fill="#A5D6FF" font-weight="600" font-size="16">🐧 Linux: pve-cert-linux.sh</text>
+          <text x="560" y="237" fill="#8B949E" font-size="13" data-en="Imports Root CA to System Store &amp; Chrome NSSDB" data-tw="自動匯入 Root CA 至系統與 Chrome / Firefox NSSDB">Imports Root CA to System Store &amp; Chrome NSSDB</text>
 
           <!-- Mac Client -->
-          <rect x="510" y="240" width="340" height="65" rx="6" fill="#22272E" stroke="#2B313A"/>
-          <text x="530" y="268" fill="#A5D6FF" font-weight="600" font-size="13">🍎 macOS: pve-cert-macos.sh</text>
-          <text x="530" y="288" fill="#8B949E" font-size="11">Imports Root CA to System Keychain</text>
+          <rect x="535" y="249" width="380" height="70" rx="6" fill="#22272E" stroke="#2B313A"/>
+          <text x="555" y="277" fill="#A5D6FF" font-weight="600" font-size="14.5">🍎 macOS: pve-cert-macos.sh</text>
+          <text x="555" y="299" fill="#8B949E" font-size="12" data-en="Imports Root CA to System Keychain" data-tw="自動匯入 Root CA 至 macOS System Keychain 鑰匙圈">Imports Root CA to System Keychain</text>
 
           <!-- Connecting Lines -->
-          <path d="M 370 115 C 430 115, 450 112, 510 112" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
-          <path d="M 370 115 C 430 115, 450 192, 510 192" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
-          <path d="M 370 115 C 430 115, 450 272, 510 272" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+          <path d="M 420 121 C 465 121, 490 120, 535 120" fill="none" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+          <path d="M 420 121 C 465 121, 490 202, 535 202" fill="none" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
+          <path d="M 420 121 C 465 121, 490 284, 535 284" fill="none" stroke="#2EA043" stroke-width="2" stroke-dasharray="4,4"/>
 
           <defs>
             <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -760,7 +848,7 @@
         <div style="margin-top:12px;">
           <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🪟 Windows (Administrator CMD / PowerShell):</div>
           <div class="code-block">
-            <code>pve-cert-windows.bat -s 192.168.1.100</code>
+            <code>curl -o pve-cert-windows.bat https://raw.githubusercontent.com/anomixer/pve-cert/main/pve-cert-windows.bat && pve-cert-windows.bat</code>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
         </div>
@@ -768,7 +856,7 @@
         <div style="margin-top:12px;">
           <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🐧 Linux (Ubuntu / Debian):</div>
           <div class="code-block">
-            <code>sudo bash pve-cert-linux.sh -s 192.168.1.100</code>
+            <code>wget https://raw.githubusercontent.com/anomixer/pve-cert/main/pve-cert-linux.sh && sudo bash pve-cert-linux.sh</code>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
         </div>
@@ -776,7 +864,7 @@
         <div style="margin-top:12px;">
           <div style="font-size:13px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">🍎 macOS (Terminal):</div>
           <div class="code-block">
-            <code>sudo bash pve-cert-macos.sh -s 192.168.1.100</code>
+            <code>curl -O https://raw.githubusercontent.com/anomixer/pve-cert/main/pve-cert-macos.sh && sudo bash pve-cert-macos.sh</code>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
         </div>
@@ -792,7 +880,7 @@
         <thead>
           <tr>
             <th data-en="Feature / Method" data-tw="功能 / 評比項目">功能 / 評比項目</th>
-            <th class="highlight-col">pve-cert (本腳本)</th>
+            <th class="highlight-col" data-en="pve-cert (This Script)" data-tw="pve-cert (本腳本)">pve-cert (本腳本)</th>
             <th data-en="PVE Default Cert" data-tw="PVE 預設自簽">PVE 預設自簽</th>
             <th data-en="ACME (HTTP-01)" data-tw="ACME (HTTP-01)">ACME (HTTP-01)</th>
             <th data-en="Cloudflare (DNS-01)" data-tw="Cloudflare (DNS-01)">Cloudflare (DNS-01)</th>
@@ -801,45 +889,91 @@
         <tbody>
           <tr>
             <td data-en="Browser Green Lock Icon" data-tw="綠色受信任鎖頭">綠色受信任鎖頭</td>
-            <td class="highlight-col"><span class="badge-check">YES</span> (完成用戶端)</td>
-            <td><span class="badge-cross">NO</span> (提示警告)</td>
+            <td class="highlight-col" data-en="<span class=&quot;badge-check&quot;>YES</span> (after client setup)" data-tw="<span class=&quot;badge-check&quot;>YES</span> (完成用戶端)"><span class="badge-check">YES</span> (完成用戶端)</td>
+            <td data-en="<span class=&quot;badge-cross&quot;>NO</span> (warning shown)" data-tw="<span class=&quot;badge-cross&quot;>NO</span> (提示警告)"><span class="badge-cross">NO</span> (提示警告)</td>
             <td><span class="badge-check">YES</span></td>
             <td><span class="badge-check">YES</span></td>
           </tr>
           <tr>
             <td data-en="Public Domain Required" data-tw="需公開網域">需公開網域</td>
-            <td class="highlight-col"><span class="badge-check">NO</span> (完全不需要)</td>
+            <td class="highlight-col" data-en="<span class=&quot;badge-check&quot;>NO</span> (not required)" data-tw="<span class=&quot;badge-check&quot;>NO</span> (完全不需要)"><span class="badge-check">NO</span> (完全不需要)</td>
             <td><span class="badge-check">NO</span></td>
             <td><span class="badge-cross">YES</span></td>
             <td><span class="badge-cross">YES</span></td>
           </tr>
           <tr>
             <td data-en="Internet Access Required" data-tw="需網際網路連線">需網際網路連線</td>
-            <td class="highlight-col"><span class="badge-check">NO</span> (100% 離線)</td>
+            <td class="highlight-col" data-en="<span class=&quot;badge-check&quot;>NO</span> (100% offline)" data-tw="<span class=&quot;badge-check&quot;>NO</span> (100% 離線)"><span class="badge-check">NO</span> (100% 離線)</td>
             <td><span class="badge-check">NO</span></td>
             <td><span class="badge-cross">YES</span> (Port 80)</td>
             <td><span class="badge-cross">YES</span> (DNS API)</td>
           </tr>
           <tr>
             <td data-en="Validity Duration" data-tw="憑證有效期">憑證有效期</td>
-            <td class="highlight-col">10 年 Root CA</td>
-            <td>1 年 (須重做)</td>
-            <td>90 天 (自動更新)</td>
-            <td>90 天 (自動更新)</td>
+            <td class="highlight-col" data-en="10-Year Root CA" data-tw="10 年 Root CA">10 年 Root CA</td>
+            <td data-en="1 Year (requires manual re-import)" data-tw="1 年 (須重做)">1 年 (須重做)</td>
+            <td data-en="90 Days (auto-renew)" data-tw="90 天 (自動更新)">90 天 (自動更新)</td>
+            <td data-en="90 Days (auto-renew)" data-tw="90 天 (自動更新)">90 天 (自動更新)</td>
           </tr>
           <tr>
             <td data-en="Direct IP Access Trusted" data-tw="直接 IP 連線受信任">直接 IP 連線受信任</td>
-            <td class="highlight-col"><span class="badge-check">YES</span> (SAN 包含 IP)</td>
+            <td class="highlight-col" data-en="<span class=&quot;badge-check&quot;>YES</span> (SAN includes IP)" data-tw="<span class=&quot;badge-check&quot;>YES</span> (SAN 包含 IP)"><span class="badge-check">YES</span> (SAN 包含 IP)</td>
             <td><span class="badge-cross">NO</span></td>
             <td><span class="badge-cross">NO</span></td>
             <td><span class="badge-cross">NO</span></td>
           </tr>
           <tr>
             <td data-en="Hostnames Exposed to CT Logs" data-tw="主機名曝露於 CT 日誌">主機名曝露於 CT 日誌</td>
-            <td class="highlight-col"><span class="badge-check">NO</span> (安全隱密)</td>
+            <td class="highlight-col" data-en="<span class=&quot;badge-check&quot;>NO</span> (Secure &amp; Private)" data-tw="<span class=&quot;badge-check&quot;>NO</span> (安全隱密)"><span class="badge-check">NO</span> (安全隱密)</td>
             <td><span class="badge-check">NO</span></td>
             <td><span class="badge-cross">YES</span></td>
             <td><span class="badge-cross">YES</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Output Files on PVE Section -->
+    <h3 style="text-align:center; font-size:1.4rem; font-weight:700; color:var(--text-bright); margin:3.5rem 0 1rem;" data-en="📂 Output Files on Proxmox VE Server" data-tw="📂 Proxmox VE 伺服器端產出檔案說明">📂 Proxmox VE 伺服器端產出檔案說明</h3>
+    <div class="table-wrapper" style="margin-bottom: 4rem;">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th data-en="File Path" data-tw="檔案路徑">檔案路徑</th>
+            <th data-en="Type" data-tw="類型">類型</th>
+            <th data-en="Description" data-tw="說明">說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/root/pve-local-ca.crt</code></td>
+            <td><span style="background:rgba(46, 160, 67, 0.15); color:var(--success); padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="Root CA Cert" data-tw="Root CA 憑證">Root CA 憑證</span></td>
+            <td data-en="10-Year Local Root CA certificate. Imported to client computers and mobile devices." data-tw="專屬 Root CA 憑證 (10 年有效)，匯入用戶端電腦與手機信任庫。">專屬 Root CA 憑證 (10 年有效)，匯入用戶端電腦與手機信任庫。</td>
+          </tr>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/root/pve-local-ca.key</code></td>
+            <td><span style="background:rgba(215, 58, 73, 0.15); color:var(--danger); padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="Root CA Key" data-tw="Root CA 私鑰">Root CA 私鑰</span></td>
+            <td data-en="4096-bit RSA Private Key for CA. Stored locally on PVE host only (chmod 600)." data-tw="4096-bit RSA 私鑰，僅保存在 PVE 伺服器本機 (`chmod 600`)。">4096-bit RSA 私鑰，僅保存在 PVE 伺服器本機 (`chmod 600`)。</td>
+          </tr>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/etc/pve/local/pveproxy-ssl.pem</code></td>
+            <td><span style="background:rgba(165, 214, 255, 0.15); color:#A5D6FF; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="PVE Node Cert" data-tw="PVE 伺服器憑證">PVE 伺服器憑證</span></td>
+            <td data-en="Node server certificate with SAN (IP + FQDN), signed by Local Root CA (825 days)." data-tw="包含 SAN (IP + FQDN) 的 PVE 節點憑證，由 Local Root CA 簽署 (825 天)。">包含 SAN (IP + FQDN) 的 PVE 節點憑證，由 Local Root CA 簽署 (825 天)。</td>
+          </tr>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/etc/pve/local/pveproxy-ssl.key</code></td>
+            <td><span style="background:rgba(215, 58, 73, 0.15); color:var(--danger); padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="PVE Node Key" data-tw="PVE 伺服器私鑰">PVE 伺服器私鑰</span></td>
+            <td data-en="2048-bit RSA Private Key (chmod 600), loaded by pveproxy service (:8006)." data-tw="2048-bit RSA 私鑰 (`chmod 600`)，供 `pveproxy` 服務 (:8006) 載入。">2048-bit RSA 私鑰 (`chmod 600`)，供 `pveproxy` 服務 (:8006) 載入。</td>
+          </tr>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/etc/pve/local/pveproxy-ssl.pem.bak.*</code></td>
+            <td><span style="background:rgba(139, 148, 158, 0.15); color:#8B949E; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="Original Cert Backup" data-tw="原始憑證備份">原始憑證備份</span></td>
+            <td data-en="Timestamped backup of original PVE cert. Restored when running pve-cert.sh -u." data-tw="自動時間戳記備份，執行 `bash pve-cert.sh -u` 反安裝時還原此檔案。">自動時間戳記備份，執行 `bash pve-cert.sh -u` 反安裝時還原此檔案。</td>
+          </tr>
+          <tr>
+            <td><code style="color:var(--pve-orange); font-weight:600;">/etc/pve/local/pveproxy-ssl.key.bak.*</code></td>
+            <td><span style="background:rgba(139, 148, 158, 0.15); color:#8B949E; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;" data-en="Original Key Backup" data-tw="原始私鑰備份">原始私鑰備份</span></td>
+            <td data-en="Timestamped backup of original PVE key. Restored when running pve-cert.sh -u." data-tw="自動時間戳記備份，執行 `bash pve-cert.sh -u` 反安裝時還原此檔案。">自動時間戳記備份，執行 `bash pve-cert.sh -u` 反安裝時還原此檔案。</td>
           </tr>
         </tbody>
       </table>
@@ -852,17 +986,47 @@
     <div class="faq-list">
       <div class="faq-item">
         <div class="faq-question" onclick="toggleFaq(this)">
-          <span data-en="Q1: Does pve-cert work on single computers without other LAN clients?" data-tw="Q1: 可以在單一一台電腦上完成 Proxmox VE 的受信設定嗎？">Q1: 可以在單一一台電腦上完成 Proxmox VE 的受信設定嗎？</span>
+          <span data-en="Q1: Why does plain HTTP (http://<PVE_IP>:8006) still show 'Not Secure' after running the client script?" data-tw="Q1: 為什麼執行完用戶端腳本後，連線 HTTP 網址 (http://<PVE_IP>:8006) 依然顯示「不安全」？">Q1: 為什麼執行完用戶端腳本後，連線 HTTP 網址 (http://<PVE_IP>:8006) 依然顯示「不安全」？</span>
           <span class="faq-icon">▼</span>
         </div>
-        <div class="faq-answer" data-en="Yes! Simply run pve-cert.sh on the Proxmox VE server node. Then on your managing computer, run the client script (pve-cert-windows.bat / pve-cert-linux.sh / pve-cert-macos.sh) specifying the PVE server IP. Your browser will instantly display a green lock icon." data-tw="完全可以！只需在 Proxmox VE 伺服器上執行 `pve-cert.sh`，隨後在你用來管理的電腦上執行對應作業系統的客戶端腳本（`pve-cert-windows.bat` / `pve-cert-linux.sh` / `pve-cert-macos.sh` -s <PVE_IP>），瀏覽器存取 Proxmox VE Web UI (:8006) 即可秒亮綠色鎖頭。">
-          完全可以！只需在 Proxmox VE 伺服器上執行 `pve-cert.sh`，隨後在你用來管理的電腦上執行對應作業系統的客戶端腳本（`pve-cert-windows.bat` / `pve-cert-linux.sh` / `pve-cert-macos.sh` -s &lt;PVE_IP&gt;），瀏覽器存取 Proxmox VE Web UI (:8006) 即可秒亮綠色鎖頭。
+        <div class="faq-answer" data-en="Modern browsers (Chrome, Edge, Safari, Firefox) always label plain <code>http://</code> connections as 'Not Secure'. After running the client script, please <b>completely restart your browser</b> and navigate to <b><code>https://&lt;PVE_IP&gt;:8006</code></b> or <b><code>https://&lt;PVE_FQDN&gt;:8006</code></b> to view the secure 🔒 lock icon!" data-tw="現代瀏覽器（如 Chrome、Edge、Safari、Firefox）對於明文 <code>http://</code> 協定<b>一律會顯示「不安全」字樣</b>。請執行完用戶端腳本後<b>完全關閉並重開瀏覽器</b>，並將網址切換為加密的 <b><code>https://&lt;PVE_IP&gt;:8006</code></b> 或 <b><code>https://&lt;PVE_FQDN&gt;:8006</code></b>，即可看到亮起綠色/灰色安全鎖頭 🔒！">
+          現代瀏覽器（如 Chrome、Edge、Safari、Firefox）對於明文 <code>http://</code> 協定<b>一律會顯示「不安全」字樣</b>。請執行完用戶端腳本後<b>完全關閉並重開瀏覽器</b>，並將網址切換為加密的 <b><code>https://&lt;PVE_IP&gt;:8006</code></b> 或 <b><code>https://&lt;PVE_FQDN&gt;:8006</code></b>，即可看到亮起綠色/灰色安全鎖頭 🔒！
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-question" onclick="toggleFaq(this)">
-          <span data-en="Q2: What happens when Proxmox VE is upgraded to PVE 8 or PVE 9?" data-tw="Q2: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？">Q2: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？</span>
+          <span data-en="Q2: Can I complete setup on a single machine (e.g. PVE installed on Debian Desktop with browser)?" data-tw="Q2: 可以在單一台電腦（例如先安裝 Debian 桌面版再安裝 PVE、有 GUI 桌面與瀏覽器）上完成受信設定嗎？">Q2: 可以在單一台電腦（例如先安裝 Debian 桌面版再安裝 PVE、有 GUI 桌面與瀏覽器）上完成受信設定嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes! If your Proxmox VE was installed on top of a Debian desktop system (with a Desktop Environment and local browser), your machine acts as both server and client. Simply run pve-cert.sh first, then execute sudo bash pve-cert-linux.sh -s 127.0.0.1 on the same computer. Your local browser accessing https://127.0.0.1:8006 will instantly show a trusted green lock icon." data-tw="完全可以！若您的 Proxmox VE 是透過 Debian 桌面版系統安裝（本機帶有 GUI 桌面與瀏覽器），這台電腦既是伺服器也是用戶端。您只需先執行 pve-cert.sh 簽發憑證，隨後直接在同台電腦上執行用戶端腳本（sudo bash pve-cert-linux.sh -s 127.0.0.1），本機瀏覽器連線 https://127.0.0.1:8006 或 FQDN 即可秒亮綠色安全鎖頭。">
+          完全可以！若您的 Proxmox VE 是透過 Debian 桌面版系統安裝（本機帶有 GUI 桌面與瀏覽器），這台電腦既是伺服器也是用戶端。您只需先執行 `pve-cert.sh` 簽發憑證，隨後直接在同台電腦上執行用戶端腳本（`sudo bash pve-cert-linux.sh -s 127.0.0.1`），本機瀏覽器連線 `https://127.0.0.1:8006` 或 FQDN 即可秒亮綠色安全鎖頭。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q3: Does pve-cert require a public domain name or internet access?" data-tw="Q3: 使用 pve-cert 需要購買或擁有公開外網網域 (Public Domain) 嗎？">Q3: 使用 pve-cert 需要購買或擁有公開外網網域 (Public Domain) 嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="No! pve-cert automatically embeds your PVE server node's internal LAN IP, Tailscale/VPN IPs, and local hostname (like pve.local) into the certificate's SAN (Subject Alternative Name). It works 100% offline without public domain names or DNS-01 API keys." data-tw="完全不需要！pve-cert 會自動將 Proxmox VE 節點的實體 LAN IP、Tailscale / VPN IP 及區域電腦名稱（如 pve.local）包含於憑證 SAN 中。即使沒有公開網域、在 100% 隔離的內網環境下，直接以內網 IP 或 FQDN 連線皆能受到完整保護與信任。">
+          完全不需要！pve-cert 會自動將 Proxmox VE 節點的實體 LAN IP、Tailscale / VPN IP 及區域電腦名稱（如 pve.local）包含於憑證 SAN 中。即使沒有公開網域、在 100% 隔離的內網環境下，直接以內網 IP 或 FQDN 連線皆能受到完整保護與信任。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q4: Can I import the Root CA certificate into mobile devices (iOS / Android)?" data-tw="Q4: 可以將 Root CA 憑證匯入至手機或平板（iOS / Android）嗎？">Q4: 可以將 Root CA 憑證匯入至手機或平板（iOS / Android）嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes! You can transfer the Root CA certificate (/etc/anycert/anycert-ca.crt) to your mobile device via AirDrop, Email, or HTTP download:<br>&bull; <b>iOS (iPhone / iPad)</b>: Tap profile to install &rarr; Go to Settings &gt; General &gt; About &gt; Certificate Trust Settings &rarr; Turn on Full Trust for Root Certificates.<br>&bull; <b>Android</b>: Go to Settings &gt; Security &gt; Encryption & Credentials &gt; Install a Certificate &rarr; Select CA Certificate and import." data-tw="可以！您可以將伺服器產生的 Root CA 憑證 (/etc/anycert/anycert-ca.crt) 傳送至手機或平板：<br>&bull; <b>iOS (iPhone / iPad)</b>：點擊憑證檔下載描述檔 ➔ 至「設定 > 一般 > 關於本機 > 憑證信任設定」中開啟該 Root CA 的「完全信任」。<br>&bull; <b>Android</b>：至「設定 > 安全性 > 加密與憑證 > 安裝憑證」選擇「CA 憑證」並匯入即可。">
+          可以！您可以將伺服器產生的 Root CA 憑證 (`/etc/anycert/anycert-ca.crt`) 傳送至手機或平板：<br>&bull; <b>iOS (iPhone / iPad)</b>：點擊憑證檔下載描述檔 ➔ 至「設定 &gt; 一般 &gt; 關於本機 &gt; 憑證信任設定」中開啟該 Root CA 的「完全信任」。<br>&bull; <b>Android</b>：至「設定 &gt; 安全性 &gt; 加密與憑證 &gt; 安裝憑證」選擇「CA 憑證」並匯入即可。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q5: What happens when Proxmox VE is upgraded to PVE 8 or PVE 9?" data-tw="Q5: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？">Q5: 當 Proxmox VE 升級到 PVE 8 或 PVE 9 時需要重新設定嗎？</span>
           <span class="faq-icon">▼</span>
         </div>
         <div class="faq-answer" data-en="No re-configuration is needed! The Root CA imported to your client devices is valid for 10 years. Even after upgrading PVE major versions, clients remain 100% trusted." data-tw="不需要！匯入至用戶端電腦的 Root CA 憑證具有 10 年有效期。即使 Proxmox VE 進行跨版本升級，用戶端依然會持續信任該節點憑證。">
@@ -872,13 +1036,83 @@
 
       <div class="faq-item">
         <div class="faq-question" onclick="toggleFaq(this)">
-          <span data-en="Q3: How to uninstall and restore original Proxmox VE certificates?" data-tw="Q3: 如何反安裝並恢復 Proxmox VE 原始備份憑證？">Q3: 如何反安裝並恢復 Proxmox VE 原始備份憑證？</span>
+          <span data-en="Q6: How to uninstall and restore original Proxmox VE certificates?" data-tw="Q6: 如何反安裝並恢復 Proxmox VE 原始備份憑證？">Q6: 如何反安裝並恢復 Proxmox VE 原始備份憑證？</span>
           <span class="faq-icon">▼</span>
         </div>
         <div class="faq-answer" data-en="Run `bash pve-cert.sh -u` on the Proxmox VE node. It automatically restores original certificate backups and restarts pveproxy. Run `pve-cert-windows.bat -u` (or .sh -u) on client machines to remove CA certs from trust stores." data-tw="只需在 PVE 節點上執行 `bash pve-cert.sh -u`，腳本會自動還原 `/etc/pve/local/` 下的原始憑證備份並重啟 pveproxy；用戶端則執行 `pve-cert-windows.bat -u` 即可乾淨清除系統信任庫與 hosts 殘留。">
           只需在 PVE 節點上執行 `bash pve-cert.sh -u`，腳本會自動還原 `/etc/pve/local/` 下的原始憑證備份並重啟 pveproxy；用戶端則執行 `pve-cert-windows.bat -u` 即可乾淨清除系統信任庫與 hosts 殘留。
         </div>
       </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q7: Why use pve-cert instead of directly importing Proxmox VE's default self-signed cert?" data-tw="Q7: 我直接把 PVE 預設的自簽憑證匯入電腦就好啦！為什麼要用 pve-cert？">Q7: 我直接把 PVE 預設的自簽憑證匯入電腦就好啦！為什麼要用 pve-cert？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Directly importing PVE's default self-signed cert has 3 major pain points:<br>&bull; <b>Annual Renewal Nightmare (Most Important)</b>: Default PVE certs expire every 1 year. Every time PVE auto-renews its cert, its public key changes &mdash; forcing you to manually re-import certs on ALL client computers and mobile devices every single year! pve-cert uses a 10-year Root CA so clients are set up <b>once and valid for 10 years</b>.<br>&bull; <b>Multi-IP & Tailscale SAN Support</b>: Default PVE certs don't include extra LAN or VPN IPs. pve-cert automatically embeds all IPs and FQDNs into the certificate's SAN.<br>&bull; <b>Automated Import</b>: pve-cert provides automated client scripts for Windows, Linux, and macOS to import trust into OS & Chrome NSSDB effortlessly." data-tw="直接手動匯入 PVE 預設的自簽憑證有三大致命痛點：<br>&bull; <b>每年都要每台重新匯入（最大的痛點）</b>：PVE 預設憑證有效期只有 1 年，每年更新後金鑰會改變，導致您家裡或公司所有的電腦與手機<b>每年通通都要重新手動匯入一次</b>！而 pve-cert 產生的 10 年 Root CA 讓用戶端<b>只需設定一次，十年免重設</b>。<br>&bull; <b>不支援多 IP / Tailscale SAN</b>：PVE 預設憑證通常未包含所有虛擬網路與額外 IP，用不同 IP 或 Tailscale 連線時仍會跳警告。pve-cert 會將所有 IP 與 FQDN 包含於 SAN。<br>&bull; <b>自動化跨平台寫入</b>：pve-cert 提供一鍵客戶端腳本，自動幫您寫入 Windows Store、macOS Keychain 與 Linux Chrome NSSDB，免去複雜的系統選單點擊。">
+          直接手動匯入 PVE 預設的自簽憑證有三大致命痛點：<br>&bull; <b>每年都要每台重新匯入（最大的痛點）</b>：PVE 預設憑證有效期只有 1 年，每年更新後金鑰會改變，導致您家裡或公司所有的電腦與手機<b>每年通通都要重新手動匯入一次</b>！而 pve-cert 產生的 10 年 Root CA 讓用戶端<b>只需設定一次，十年免重設</b>。<br>&bull; <b>不支援多 IP / Tailscale SAN</b>：PVE 預設憑證通常未包含所有虛擬網路與額外 IP，用不同 IP 或 Tailscale 連線時仍會跳警告。pve-cert 會將所有 IP 與 FQDN 包含於 SAN。<br>&bull; <b>自動化跨平台寫入</b>：pve-cert 提供一鍵客戶端腳本，自動幫您寫入 Windows Store、macOS Keychain 與 Linux Chrome NSSDB，免去複雜的系統選單點擊。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q8: Can a single client machine trust multiple PVE servers?" data-tw="Q8: 一台用戶端可以同時信任多台 Proxmox VE 伺服器嗎？">Q8: 一台用戶端可以同時信任多台 Proxmox VE 伺服器嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes! Each PVE server has its own independent Root CA, and the client scripts fully support multiple servers. Run the client script once per PVE server (e.g. &lt;code&gt;pve-cert-windows.bat -s 192.168.1.10&lt;/code&gt;, then &lt;code&gt;pve-cert-windows.bat -s 192.168.1.20&lt;/code&gt;). Each CA cert is imported separately and tracked in a local registry file. When you run the client script again without -s, it lists all registered PVE servers and lets you choose to Add, Remove, or Exit." data-tw="完全可以！每台 PVE 伺服器各自擁有獨立的 Root CA，用戶端腳本完整支援多台伺服器並存。只需針對每台 PVE 分別執行一次用戶端腳本（例如先 &lt;code&gt;pve-cert-windows.bat -s 192.168.1.10&lt;/code&gt;，再 &lt;code&gt;pve-cert-windows.bat -s 192.168.1.20&lt;/code&gt;），每台伺服器的 CA 憑證會被獨立匯入並記錄於本地清單。下次不帶 -s 直接執行時，腳本會列出所有已登記的 PVE 伺服器，讓您選擇新增、移除或離開。">
+          完全可以！每台 PVE 伺服器各自擁有獨立的 Root CA，用戶端腳本完整支援多台伺服器並存。<br>
+          只需針對每台 PVE 分別執行一次用戶端腳本：<br>
+          &bull; <code>pve-cert-windows.bat -s 192.168.1.10</code><br>
+          &bull; <code>pve-cert-windows.bat -s 192.168.1.20</code><br><br>
+          每台伺服器的 CA 憑證會被獨立匯入並記錄於本地清單。下次直接執行（不加 <code>-s</code>）時，腳本會列出所有已登記的 PVE 伺服器，讓您選擇「新增 / 移除 / 離開」。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span data-en="Q9: Can I use pve-cert for other services on PVE/Linux (like Nginx, Docker, etc.)?" data-tw="Q9: 若我有其他 Proxmox VE / Linux 上的服務（如 Nginx、Docker、Web 服務），能用 pve-cert 嗎？">Q9: 若我有其他 Proxmox VE / Linux 上的服務（如 Nginx、Docker、Web 服務），能用 pve-cert 嗎？</span>
+          <span class="faq-icon">▼</span>
+        </div>
+        <div class="faq-answer" data-en="pve-cert is built specifically for the Proxmox VE native Web Console UI (:8006). If you need trusted HTTPS for Nginx reverse proxies, Docker containers, OpenMediaVault, or other custom web services on your PVE host or LAN, please use our sister project <a href=&quot;https://anomixer.github.io/anycert/&quot; target=&quot;_blank&quot; style=&quot;color:var(--pve-orange); font-weight:600;&quot;>anycert (Multi-Service Cert Toolkit)</a>." data-tw="pve-cert 專為 Proxmox VE 節點原生 Web Console UI (:8006) 打造。若您需要在 PVE 宿主機或容器中為 Nginx 反向代理、Docker 容器、OpenMediaVault 或其他自建 Web 服務設定受信 HTTPS，請使用姊妹專案 <a href=&quot;https://anomixer.github.io/anycert/&quot; target=&quot;_blank&quot; style=&quot;color:var(--pve-orange); font-weight:600;&quot;>anycert (全功能多服務憑證工具)</a>，支援 5 大 Service Profile 與一鍵 Nginx 反代配置。">
+          pve-cert 專為 Proxmox VE 節點原生 Web Console UI (:8006) 打造。若您需要在 PVE 宿主機或容器中為 Nginx 反向代理、Docker 容器、OpenMediaVault 或其他自建 Web 服務設定受信 HTTPS，請使用姊妹專案 <a href="https://anomixer.github.io/anycert/" target="_blank" style="color:var(--pve-orange); font-weight:600;">anycert (全功能多服務憑證工具)</a>，支援 5 大 Service Profile 與一鍵 Nginx 反代配置。
+        </div>
+      </div>
+    </div>
+
+    <!-- Ecosystem Suite Section -->
+    <h2 style="text-align:center; font-size:1.8rem; font-weight:700; color:var(--text-bright); margin:4.5rem 0 0.5rem;" data-en="🌐 SSL/TLS Certificate Toolkits Ecosystem" data-tw="🌐 探索我們的內網 HTTPS 憑證工具箱">🌐 探索我們的內網 HTTPS 憑證工具箱</h2>
+    <p class="section-desc" data-en="Click any project logo card below to visit its official website." data-tw="點擊下方專案卡片可直接造訪各自的官方網站">點擊下方專案卡片可直接造訪各自的官方網站</p>
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem; margin-bottom:5rem;">
+      <!-- pve-cert Card -->
+      <a href="https://anomixer.github.io/pve-cert/" style="text-decoration:none; display:flex; flex-direction:column; background:var(--pve-card-bg); border:1px solid var(--pve-card-border); border-radius:var(--border-radius); padding:24px; transition:all 0.3s; position:relative; overflow:hidden;" onmouseover="this.style.borderColor='var(--pve-orange)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--pve-card-border)'; this.style.transform='none'">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, var(--pve-orange), #FF9526); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:22px; box-shadow:0 0 15px rgba(229,112,0,0.4); position:relative;">P<span style="position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:var(--success); box-shadow:0 0 8px var(--success); border:2px solid var(--pve-card-bg);"></span></div>
+          <div>
+            <div style="font-size:20px; font-weight:800; color:var(--text-bright); line-height:1.2;">pve-cert</div>
+            <span style="font-size:11px; font-weight:700; color:var(--pve-orange); background:var(--pve-orange-light); padding:2px 8px; border-radius:10px; text-transform:uppercase;" data-en="Proxmox VE Edition" data-tw="Proxmox VE 專用版">Proxmox VE 專用版</span>
+          </div>
+        </div>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.6; flex-grow:1;" data-en="Specialized 1-click local Root CA & SSL certificate toolkit for Proxmox VE 7/8/9 Web Console UI (:8006)." data-tw="專為 Proxmox VE 7/8/9 節點原生 Web UI (:8006) 打造的一鍵專屬 Root CA 憑證簽發與跨平台自動信任工具。">專為 Proxmox VE 7/8/9 節點原生 Web UI (:8006) 打造的一鍵專屬 Root CA 憑證簽發與跨平台自動信任工具。</p>
+        <div style="margin-top:18px; font-size:13px; font-weight:600; color:var(--pve-orange); display:flex; align-items:center; gap:6px;">
+          <span data-en="Visit pve-cert Site" data-tw="造訪 pve-cert 官方網站">造訪 pve-cert 官方網站</span> ➔
+        </div>
+      </a>
+
+      <!-- anycert Card -->
+      <a href="https://anomixer.github.io/anycert/" target="_blank" style="text-decoration:none; display:flex; flex-direction:column; background:var(--pve-card-bg); border:1px solid var(--pve-card-border); border-radius:var(--border-radius); padding:24px; transition:all 0.3s; position:relative; overflow:hidden;" onmouseover="this.style.borderColor='#06B6D4'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--pve-card-border)'; this.style.transform='none'">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #06B6D4, #3B82F6); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:20px; box-shadow:0 0 15px rgba(6,182,212,0.4);">🔒</div>
+          <div>
+            <div style="font-size:20px; font-weight:800; color:var(--text-bright); line-height:1.2;">anycert</div>
+            <span style="font-size:11px; font-weight:700; color:#06B6D4; background:rgba(6,182,212,0.15); padding:2px 8px; border-radius:10px; text-transform:uppercase;" data-en="Multi-Service Suite" data-tw="多服務旗艦版">多服務旗艦版</span>
+          </div>
+        </div>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.6; flex-grow:1;" data-en="Full-featured multi-service SSL toolkit supporting Nginx Reverse Proxy, Gateway, Custom Path & Generate-only modes." data-tw="全功能多服務內網憑證工具箱，支援 Nginx SSL Proxy / Gateway / Custom Path 等 5 大 Profile 與一鍵 Nginx 反代配置。">全功能多服務內網憑證工具箱，支援 Nginx SSL Proxy / Gateway / Custom Path 等 5 大 Profile 與一鍵 Nginx 反代配置。</p>
+        <div style="margin-top:18px; font-size:13px; font-weight:600; color:#06B6D4; display:flex; align-items:center; gap:6px;">
+          <span data-en="Visit anycert Site" data-tw="造訪 anycert 官方網站">造訪 anycert 官方網站</span> ➔
+        </div>
+      </a>
     </div>
 
   </div>
@@ -894,8 +1128,8 @@
 
   <!-- Lightbox Modal & Always-On-Top Toolbar -->
   <div id="lightbox-toolbar">
-    <button class="lb-btn" onclick="toggleZoom()" id="lb-zoom-btn">🔍 放大 150%</button>
-    <button class="lb-btn" onclick="closeLightbox()">✕ 關閉</button>
+    <button class="lb-btn" onclick="toggleZoom()" id="lb-zoom-btn" data-en="🔍 Zoom 150%" data-tw="🔍 放大 150%">🔍 放大 150%</button>
+    <button class="lb-btn" onclick="closeLightbox()" data-en="✕ Close" data-tw="✕ 關閉">✕ 關閉</button>
   </div>
 
   <div id="lightbox-modal" onclick="closeLightbox(event)">
@@ -905,18 +1139,41 @@
   </div>
 
   <script>
-    // Dual Language Switcher
-    let currentLang = 'tw';
+    // ── Language Switcher ──
+    function detectBrowserLanguage() {
+      const saved = localStorage.getItem('pve_cert_lang');
+      if (saved === 'zh' || saved === 'en') return saved;
+      const primaryLang = (navigator.language || (navigator.languages && navigator.languages[0]) || navigator.userLanguage || '').toLowerCase();
+      return primaryLang.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    function setLanguage(lang, saveUserChoice = false) {
+      const elements = document.querySelectorAll('[data-en][data-tw]');
+      if (lang === 'en') {
+        elements.forEach(el => { el.innerHTML = el.getAttribute('data-en'); });
+        if (saveUserChoice) localStorage.setItem('pve_cert_lang', 'en');
+        const btn = document.getElementById('lang-text');
+        if (btn) btn.innerText = '繁體中文';
+      } else {
+        elements.forEach(el => { el.innerHTML = el.getAttribute('data-tw'); });
+        if (saveUserChoice) localStorage.setItem('pve_cert_lang', 'zh');
+        const btn = document.getElementById('lang-text');
+        if (btn) btn.innerText = 'English';
+      }
+    }
 
     function toggleLanguage() {
-      currentLang = currentLang === 'tw' ? 'en' : 'tw';
-      document.getElementById('lang-text').innerText = currentLang === 'tw' ? 'English' : '繁體中文';
-
-      const elements = document.querySelectorAll('[data-en][data-tw]');
-      elements.forEach(el => {
-        el.innerHTML = el.getAttribute(`data-${currentLang}`);
-      });
+      const isEn = localStorage.getItem('pve_cert_lang') === 'en' ||
+                   (localStorage.getItem('pve_cert_lang') !== 'zh' && detectBrowserLanguage() === 'en');
+      if (isEn) {
+        setLanguage('zh', true);
+      } else {
+        setLanguage('en', true);
+      }
     }
+
+    // Load browser or saved language preference on page load
+    setLanguage(detectBrowserLanguage(), false);
 
     // FAQ Accordion
     function toggleFaq(headerEl) {
@@ -938,6 +1195,26 @@
       });
     }
 
+    // Mobile Navigation Drawer Toggle
+    function toggleMobileNav() {
+      const links = document.querySelector('.nav-links');
+      if (links) links.classList.toggle('active');
+    }
+
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      a.addEventListener('click', () => {
+        const links = document.querySelector('.nav-links');
+        if (links) links.classList.remove('active');
+      });
+    });
+
+    function getCurrentLanguage() {
+      const saved = localStorage.getItem('pve_cert_lang');
+      if (saved === 'zh' || saved === 'en') return saved;
+      const primaryLang = (navigator.language || (navigator.languages && navigator.languages[0]) || navigator.userLanguage || '').toLowerCase();
+      return primaryLang.startsWith('zh') ? 'zh' : 'en';
+    }
+
     // Lightbox Modal Logic
     let isZoomed = false;
 
@@ -949,7 +1226,8 @@
       img.src = src;
       img.classList.remove('zoomed');
       isZoomed = false;
-      document.getElementById('lb-zoom-btn').innerText = '🔍 放大 150%';
+      const lang = getCurrentLanguage();
+      document.getElementById('lb-zoom-btn').innerText = lang === 'en' ? '🔍 Zoom 150%' : '🔍 放大 150%';
 
       modal.style.display = 'block';
       toolbar.style.display = 'flex';
@@ -970,13 +1248,14 @@
       const img = document.getElementById('lightbox-img');
       const btn = document.getElementById('lb-zoom-btn');
       isZoomed = !isZoomed;
+      const lang = getCurrentLanguage();
 
       if (isZoomed) {
         img.classList.add('zoomed');
-        btn.innerText = '🔍 還原 100%';
+        btn.innerText = lang === 'en' ? '🔍 Reset 100%' : '🔍 還原 100%';
       } else {
         img.classList.remove('zoomed');
-        btn.innerText = '🔍 放大 150%';
+        btn.innerText = lang === 'en' ? '🔍 Zoom 150%' : '🔍 放大 150%';
       }
     }
   </script>

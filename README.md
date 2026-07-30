@@ -156,7 +156,7 @@ The main trade-off is that every new client machine needs to run the client scri
 - `openssl` installed (included in PVE by default)
 
 ### Windows Client
-- Run as **Administrator**
+- Run as **Administrator** (right-click → Run as administrator, or the script will offer to auto-elevate via UAC prompt)
 - OpenSSH Client enabled (Windows 10 build 1809+)
   - Settings → Apps → Optional Features → OpenSSH Client
 - `pve-cert.sh` must have been run on the PVE server first
@@ -238,30 +238,51 @@ The script will:
 
 ### Step 2 — Run on each client machine
 
-Run the script for your OS:
+Run the script for your OS using either **CLI Mode** (automated zero-prompt) or **Interactive Mode**:
 
-**Windows** — right-click `pve-cert-windows.bat` → Run as administrator
-```bat
-pve-cert-windows.bat
+#### Option A: Automated CLI Mode (Recommended ⭐)
+Pass the `-s <SERVER_IP>` flag to bypass all interactive prompts and automatically fetch the Root CA certificate:
+
+**Windows (Command Prompt / PowerShell as Administrator):**
+```cmd
+pve-cert-windows.bat -s 192.168.21.60
 ```
 
-**Linux (Ubuntu / Debian)**
+**Linux (Ubuntu / Debian):**
 ```bash
-sudo bash pve-cert-linux.sh
+sudo bash pve-cert-linux.sh -s 192.168.21.60
 ```
 
-**macOS**
+**macOS:**
 ```bash
-sudo bash pve-cert-macos.sh
+sudo bash pve-cert-macos.sh -s 192.168.21.60
 ```
 
-All three scripts follow the same steps:
-1. Ask for the PVE IP address and SSH username
+#### Option B: Interactive Mode
+Run the script without arguments to follow step-by-step prompts:
+
+- **Windows:** right-click `pve-cert-windows.bat` → Run as administrator
+- **Linux:** `sudo bash pve-cert-linux.sh`
+- **macOS:** `sudo bash pve-cert-macos.sh`
+
+When run interactively on a client machine with existing registered PVE servers, a management menu will automatically appear:
+```text
+  Currently registered Proxmox VE servers:
+  -----------------------------------
+    192.168.21.60  <>  pve.local
+
+Please select an action:
+  [1] Add/Import a new PVE certificate [Default]
+  [2] Remove/Uninstall an existing PVE certificate
+  [3] Exit
+```
+
+All three client scripts follow the same workflow:
+1. Ask for the PVE IP address and SSH username (or use parameters from `-s`)
 2. Download `pve-local-ca.crt` from PVE via `scp` (prompts for SSH password once)
-3. Auto-detect the PVE FQDN via `ssh hostname -f`
+3. Auto-detect the PVE FQDN — reads `/etc/pve-cert/pve-cert.conf` on the server first (so user-entered short names like `pvenn` are honoured); falls back to `ssh hostname -f`
 4. Add an entry to the system hosts file
 5. Import the CA cert into the OS trust store
-6. Optionally open the PVE Web UI in the default browser
 
 **Linux additionally** imports the CA cert into the NSS store used by Chrome, Chromium, and Firefox (including snap-packaged Firefox on Ubuntu 21.10+), so no manual browser steps are needed.
 
@@ -347,9 +368,8 @@ For each selected site, the script will:
 | **Run as** | Administrator | `sudo` | `sudo` |
 | **Hosts file** | `C:\Windows\System32\drivers\etc\hosts` | `/etc/hosts` | `/etc/hosts` |
 | **Trust store** | Windows Root CA store (`certutil`) | System CA bundle (`update-ca-certificates` / `update-ca-trust`) + NSS store (Chrome/Firefox) | macOS Keychain (`security`) |
-| **Cert fingerprint** | SHA-1 thumbprint (PowerShell) | SHA-256 (openssl) | SHA-1 (openssl + Keychain) |
+| **Cert fingerprint** | SHA-1 (certutil, PowerShell-free) | SHA-256 (openssl) | SHA-1 (openssl + Keychain) |
 | **Data directory** | `%ProgramData%\pve-cert\` | `~/.local/share/pve-cert/` | `~/Library/Application Support/pve-cert/` |
-| **Open browser** | `start` | `xdg-open` | `open` |
 | **Extra dependencies** | OpenSSH Client (built-in Win10+) | `openssh-client`, `openssl`, `ca-certificates`, `libnss3-tools` (auto-installed if missing) | None (all built-in) |
 
 ---

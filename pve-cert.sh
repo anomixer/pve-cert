@@ -56,9 +56,9 @@ do_uninstall() {
 
   PVE_SSL_DIR="/etc/pve/local"
 
-  # Find the most recent backup
-  BACKUP_PEM=$(ls -t "${PVE_SSL_DIR}/pveproxy-ssl.pem.bak."* 2>/dev/null | head -1 || true)
-  BACKUP_KEY=$(ls -t "${PVE_SSL_DIR}/pveproxy-ssl.key.bak."* 2>/dev/null | head -1 || true)
+  # Find the oldest backup (original PVE factory cert)
+  BACKUP_PEM=$(ls -tr "${PVE_SSL_DIR}/pveproxy-ssl.pem.bak."* 2>/dev/null | head -1 || true)
+  BACKUP_KEY=$(ls -tr "${PVE_SSL_DIR}/pveproxy-ssl.key.bak."* 2>/dev/null | head -1 || true)
 
   echo -e "${BOLD}[ Files to be removed ]${RESET}"
   echo "  /root/pve-local-ca.key"
@@ -134,14 +134,17 @@ do_uninstall() {
 
 # ── Install ──────────────────────────────────────────────────
 detect_pve_info() {
-  info "Auto-detecting PVE network information..."
+  info "Auto-detecting PVE network settings..."
 
   PVE_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1)
   [[ -z "$PVE_IP" ]] && PVE_IP=$(hostname -I | awk '{print $1}')
 
-  PVE_HOSTNAME=$(hostname -s)
-  PVE_FQDN=$(hostname -f 2>/dev/null || echo "${PVE_HOSTNAME}.local")
-  [[ "$PVE_FQDN" == "$PVE_HOSTNAME" || "$PVE_FQDN" == "localhost" ]] && PVE_FQDN="${PVE_HOSTNAME}.local"
+  DETECTED_HOSTNAME=$(hostname -s)
+  DETECTED_FQDN=$(hostname -f 2>/dev/null || echo "${DETECTED_HOSTNAME}.local")
+  [[ "$DETECTED_FQDN" == "$DETECTED_HOSTNAME" || "$DETECTED_FQDN" == "localhost" ]] && DETECTED_FQDN="${DETECTED_HOSTNAME}.local"
+
+  PVE_HOSTNAME="$DETECTED_HOSTNAME"
+  PVE_FQDN="$DETECTED_FQDN"
 
   echo ""
   echo -e "  Detected information:"
@@ -160,6 +163,8 @@ confirm_info() {
   read -rp "  PVE DNS Name (clients will use https://<this>:8006) [${PVE_FQDN}]: " INPUT_FQDN
   [[ -n "$INPUT_FQDN" ]] && PVE_FQDN="$INPUT_FQDN"
 
+  read -rp "  Extra IP addresses for SAN (space-separated, e.g., Tailscale IP) []: " EXTRA_IPS
+
   echo ""
 }
 
@@ -167,8 +172,8 @@ ask_proceed() {
   echo -e "${BOLD}The following actions will be performed:${RESET}"
   echo "  1. Create a local Root CA certificate (valid 10 years)"
   echo "  2. Create a Proxmox node certificate with SAN:"
-  echo "     DNS: ${PVE_FQDN}"
-  echo "     IP : ${PVE_IP}"
+  echo "     DNS: ${PVE_FQDN}, localhost${DETECTED_HOSTNAME:+, $DETECTED_HOSTNAME}${DETECTED_FQDN:+, $DETECTED_FQDN}"
+  echo "     IP : ${PVE_IP}, 127.0.0.1 ${EXTRA_IPS:+ (Extra: $EXTRA_IPS)}"
   echo "  3. Install certificate to /etc/pve/local/"
   echo "  4. Restart pveproxy / pvedaemon services"
   echo ""
@@ -183,19 +188,41 @@ generate_ca() {
 
   if [[ -f "$CA_CRT" ]]; then
     warn "CA certificate already exists: $CA_CRT"
-    read -rp "$(echo -e "${YELLOW}Regenerate CA? (N to reuse existing CA) [y/N]${RESET} ")" REGEN_CA
+    read -rp "$(echo -e "${YELLOW}Regenerate CA? (N to reuse existing CA, recommended: N) [y/N]${RESET} ")" REGEN_CA
     if [[ ! "$REGEN_CA" =~ ^[Yy]$ ]]; then
-      ok "Reusing existing CA certificate."
+      ok "Reusing existing Root CA certificate. (Client devices DO NOT need to re-import CA!)"
       return
     fi
   fi
 
   openssl genrsa -out "$CA_KEY" 4096 2>/dev/null
+  
+  local ca_conf
+  ca_conf=$(mktemp)
+  cat > "$ca_conf" <<EOF
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca
+
+[req_distinguished_name]
+
+[v3_ca]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, cRLSign
+EOF
+
   openssl req -x509 -new -nodes -key "$CA_KEY" -sha256 -days 3650 \
     -out "$CA_CRT" \
     -subj "/C=TW/O=PVELocalCA/CN=Proxmox VE Local Root CA (${PVE_HOSTNAME})" \
+    -config "$ca_conf" \
+    -extensions v3_ca \
     2>/dev/null
+
+  rm -f "$ca_conf"
   chmod 600 "$CA_KEY"
+  chmod 644 "$CA_CRT"
   ok "Root CA certificate created: $CA_CRT"
 }
 
@@ -211,9 +238,23 @@ generate_node_cert() {
     -subj "/CN=${PVE_FQDN}" \
     2>/dev/null
 
+  local SAN_DNS="DNS:${PVE_FQDN},DNS:localhost"
+  if [[ -n "${DETECTED_HOSTNAME:-}" && "${DETECTED_HOSTNAME}" != "${PVE_FQDN}" ]]; then
+    SAN_DNS="${SAN_DNS},DNS:${DETECTED_HOSTNAME}"
+  fi
+  if [[ -n "${DETECTED_FQDN:-}" && "${DETECTED_FQDN}" != "${PVE_FQDN}" && "${DETECTED_FQDN}" != "${DETECTED_HOSTNAME}" ]]; then
+    SAN_DNS="${SAN_DNS},DNS:${DETECTED_FQDN}"
+  fi
+
+  local SAN_IPS="IP:${PVE_IP},IP:127.0.0.1"
+  for EIP in ${EXTRA_IPS:-}; do
+    [[ "$EIP" == "$PVE_IP" || "$EIP" == "127.0.0.1" ]] && continue
+    SAN_IPS="${SAN_IPS},IP:${EIP}"
+  done
+
   SAN_CONF=$(mktemp)
   cat > "$SAN_CONF" <<EOF
-subjectAltName=DNS:${PVE_FQDN},IP:${PVE_IP}
+subjectAltName=${SAN_DNS},${SAN_IPS}
 basicConstraints=CA:FALSE
 keyUsage=digitalSignature,keyEncipherment
 extendedKeyUsage=serverAuth
@@ -227,6 +268,7 @@ EOF
 
   rm -f "$SAN_CONF" "$NODE_CSR"
   chmod 600 "$NODE_KEY"
+  chmod 644 "$NODE_CRT"
   ok "Node certificate created: $NODE_CRT"
 }
 
@@ -246,14 +288,35 @@ install_cert() {
   PVE_SSL_DIR="/etc/pve/local"
 
   TS=$(date +%Y%m%d%H%M%S)
-  [[ -f "${PVE_SSL_DIR}/pveproxy-ssl.pem" ]] && \
-    cp "${PVE_SSL_DIR}/pveproxy-ssl.pem" "${PVE_SSL_DIR}/pveproxy-ssl.pem.bak.${TS}"
-  [[ -f "${PVE_SSL_DIR}/pveproxy-ssl.key" ]] && \
-    cp "${PVE_SSL_DIR}/pveproxy-ssl.key" "${PVE_SSL_DIR}/pveproxy-ssl.key.bak.${TS}"
+  # Only backup if an original backup does NOT exist yet (protects PVE factory cert backup)
+  if ! ls "${PVE_SSL_DIR}/pveproxy-ssl.pem.bak."* &>/dev/null; then
+    [[ -f "${PVE_SSL_DIR}/pveproxy-ssl.pem" ]] && \
+      cp "${PVE_SSL_DIR}/pveproxy-ssl.pem" "${PVE_SSL_DIR}/pveproxy-ssl.pem.bak.${TS}"
+    [[ -f "${PVE_SSL_DIR}/pveproxy-ssl.key" ]] && \
+      cp "${PVE_SSL_DIR}/pveproxy-ssl.key" "${PVE_SSL_DIR}/pveproxy-ssl.key.bak.${TS}"
+    ok "Original PVE factory certificate backed up to ${PVE_SSL_DIR}/pveproxy-ssl.pem.bak.${TS}"
+  else
+    info "Preserving original PVE factory certificate backup."
+  fi
 
   cp "$NODE_CRT" "${PVE_SSL_DIR}/pveproxy-ssl.pem"
   cp "$NODE_KEY" "${PVE_SSL_DIR}/pveproxy-ssl.key"
   ok "Certificate installed to ${PVE_SSL_DIR}"
+}
+
+save_config() {
+  local CONF_DIR="/etc/pve-cert"
+  local CONF_FILE="$CONF_DIR/pve-cert.conf"
+  mkdir -p "$CONF_DIR"
+  cat > "$CONF_FILE" <<EOF
+SERVER_FQDN="${PVE_FQDN}"
+SERVER_IP="${PVE_IP}"
+PROFILE="pve"
+PROXY_PORTS="8006"
+PORT_OFFSET="0"
+EOF
+  chmod 644 "$CONF_FILE"
+  ok "Configuration saved to $CONF_FILE"
 }
 
 restart_services() {
@@ -296,22 +359,105 @@ show_summary() {
   printf "  %-35s %s\n" "Node certificate:"                     "/etc/pve/local/pveproxy-ssl.pem"
   printf "  %-35s %s\n" "Node private key:"                     "/etc/pve/local/pveproxy-ssl.key"
 
+  echo -e "${BOLD}--------------------------------------------${RESET}"
+  echo -e "${BOLD}[ Client Device Setup Steps ]${RESET}"
   echo ""
-  echo -e "${BOLD}[ Next Steps on Client Machines ]${RESET}"
-  echo -e "  1. Download the CA certificate from PVE:"
-  echo -e "     ${YELLOW}scp root@${PVE_IP}:${CA_CRT} ./pve-local-ca.crt${RESET}"
+  echo -e "${BOLD}Option A: Automatic Client Script (CLI / Remote) ${GREEN}[Recommended ⭐]${RESET}"
   echo ""
-  echo -e "  2. Add this entry to the client's hosts file:"
+  echo -e "  Execute the client script directly on the client machine:"
+  echo -e "     - Windows: ${CYAN}pve-cert-windows.bat -s ${PVE_IP}${RESET}  (as Administrator)"
+  echo -e "     - Linux:   ${CYAN}sudo bash pve-cert-linux.sh -s ${PVE_IP}${RESET}"
+  echo -e "     - macOS:   ${CYAN}sudo bash pve-cert-macos.sh -s ${PVE_IP}${RESET}"
+  echo -e "     (Zero prompt: automatically fetches CA and configures system trust & hosts)"
+  echo ""
+  echo -e "${BOLD}Option B: Manual Setup${RESET}"
+  echo ""
+  echo -e "  1. Download Root CA via SCP:"
+  echo -e "     SCP:  ${YELLOW}scp -o StrictHostKeyChecking=no root@${PVE_IP}:${CA_CRT} ./pve-local-ca.crt${RESET}"
+  echo ""
+  echo -e "  2. Add the following entry to client's hosts file:"
   echo -e "     ${YELLOW}${PVE_IP}  ${PVE_FQDN}${RESET}"
   echo ""
-  echo -e "  3. After installing the CA cert, open in browser:"
-  echo -e "     ${GREEN}https://${PVE_FQDN}:8006${RESET}"
+  echo -e "  3. Access Proxmox VE Web Console using FQDN or IP:"
+  echo -e "     ${GREEN}https://${PVE_FQDN}:8006${RESET}  or  ${GREEN}https://${PVE_IP}:8006${RESET}"
   echo ""
-  echo -e "  -> Run ${BOLD}pve-cert.bat${RESET} on Windows to do all steps automatically!"
-  echo -e "  -> Run ${BOLD}pve-cert.bat -u${RESET} to uninstall on Windows clients."
-  echo -e "  -> Run ${BOLD}pve-cert.sh -u${RESET} to uninstall on this PVE server."
+  echo -e "  -> To uninstall on Windows clients: ${BOLD}pve-cert-windows.bat -u${RESET}"
+  echo -e "  -> To uninstall on Linux clients:   ${BOLD}sudo bash pve-cert-linux.sh -u${RESET}"
+  echo -e "  -> To uninstall on macOS clients:   ${BOLD}sudo bash pve-cert-macos.sh -u${RESET}"
+  echo -e "  -> To uninstall on this PVE server: ${BOLD}bash pve-cert.sh -u${RESET}"
   echo ""
   echo -e "${GREEN}Done!${RESET}"
+}
+
+do_uninstall_cleanup_config() {
+  local CONF_FILE="/etc/pve-cert/pve-cert.conf"
+  if [[ -f "$CONF_FILE" ]]; then
+    rm -f "$CONF_FILE"
+    info "Removed: $CONF_FILE"
+  fi
+}
+
+check_existing_cert() {
+  local NODE_CRT="/etc/pve/local/pveproxy-ssl.pem"
+  if [[ ! -f "$NODE_CRT" ]]; then
+    NODE_CRT="/root/pve-node.crt"
+  fi
+
+  if [[ -f "$NODE_CRT" ]]; then
+    echo "An existing Proxmox VE certificate setup is detected."
+    echo "-----------------------------------------------------"
+
+    local CERT_SUBJ EXP_DATE EXP_EPOCH NOW_EPOCH DAYS_LEFT=0
+    CERT_SUBJ=$(openssl x509 -subject -noout -in "$NODE_CRT" 2>/dev/null | sed -e 's/subject=//' -e 's/.*CN[ =]*//' -e 's/\/.*//' | xargs)
+    EXP_DATE=$(openssl x509 -enddate -noout -in "$NODE_CRT" 2>/dev/null | cut -d= -f2)
+    EXP_EPOCH=$(date -d "$EXP_DATE" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$EXP_DATE" +%s 2>/dev/null || echo 0)
+    NOW_EPOCH=$(date +%s)
+    if [[ $EXP_EPOCH -gt 0 ]]; then
+      DAYS_LEFT=$(( (EXP_EPOCH - NOW_EPOCH) / 86400 ))
+    fi
+
+    local SAN_LINE
+    SAN_LINE=$(openssl x509 -in "$NODE_CRT" -text -noout 2>/dev/null | grep -A1 "Subject Alt" | tail -1 | xargs || true)
+
+    echo -e "  ${BOLD}Subject/FQDN :${RESET} ${GREEN}${CERT_SUBJ}${RESET}"
+    echo -e "  ${BOLD}Days Left    :${RESET} ${GREEN}${DAYS_LEFT} days${RESET}"
+    echo -e "  ${BOLD}SAN Contents :${RESET} ${GREEN}${SAN_LINE}${RESET}"
+    echo -e "  ${BOLD}Applied Cert :${RESET} /etc/pve/local/pveproxy-ssl.pem"
+    echo ""
+
+    if [[ $DAYS_LEFT -lt 30 ]]; then
+      warn "This node certificate is expiring soon ($DAYS_LEFT days left)!"
+      echo ""
+    fi
+
+    echo "Please choose an action:"
+    echo "  [1] Reissue / Renew Proxmox VE SSL certificate"
+    echo "  [2] Uninstall and restore original Proxmox VE certificates"
+    echo "  [0] Keep existing and exit"
+    echo ""
+
+    local choice=""
+    while true; do
+      read -rp "  Please choose [1, 2, 0]: " choice
+      if [[ "$choice" =~ ^[120]$ ]]; then
+        break
+      fi
+      warn "Invalid choice, please try again."
+    done
+
+    if [[ "$choice" == "1" ]]; then
+      echo ""
+      info "Reissuing Proxmox VE SSL Certificate..."
+      echo ""
+      RENEW_MODE=1
+    elif [[ "$choice" == "2" ]]; then
+      do_uninstall
+      exit 0
+    elif [[ "$choice" == "0" ]]; then
+      info "Keeping existing certificate. Exiting..."
+      exit 0
+    fi
+  fi
 }
 
 # ── Entry point ──────────────────────────────────────────────
@@ -324,6 +470,8 @@ if [[ "${1:-}" == "-u" ]]; then
   exit 0
 fi
 
+check_existing_cert
+
 detect_pve_info
 confirm_info
 ask_proceed
@@ -331,5 +479,6 @@ generate_ca
 generate_node_cert
 verify_cert
 install_cert
+save_config
 restart_services
 show_summary
